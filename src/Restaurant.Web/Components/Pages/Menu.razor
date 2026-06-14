@@ -1,0 +1,227 @@
+@page "/menu"
+@rendermode InteractiveServer
+@inject IMenuService MenuSvc
+@inject IAnalyticsService Analytics
+@inject LanguageState Lang
+
+<PageTitle>@Lang["menu.title"] — @Lang["brand"]</PageTitle>
+
+<section class="section menu-section">
+    <div class="container">
+        <div class="section-head reveal">
+            <div class="eyebrow">@Lang["brand"]</div>
+            <h1>@Lang["menu.title"]</h1>
+        </div>
+
+        <div class="toolbar-row">
+            <div class="toolbar-search">
+                <span class="search-ico">🔎</span>
+                <input placeholder="@Lang["menu.search"]" value="@searchText" @oninput="OnSearchInput" />
+            </div>
+            <button class="filter-btn @(activeCount > 0 ? "has-active" : "")" @onclick="() => filtersOpen = true">
+                <span>⚙</span> @Lang["menu.filters"]
+                @if (activeCount > 0)
+                {
+                    <span class="filter-count">@activeCount</span>
+                }
+            </button>
+        </div>
+
+        <div class="menu-toolbar">
+            <div class="cat-strip">
+                <button class="cat-chip @(selectedCat is null ? "active" : "")" @onclick="() => SelectCategory(null)">@Lang["menu.all"]</button>
+                @foreach (var c in categories)
+                {
+                    <button class="cat-chip @(selectedCat == c.Id ? "active" : "")" @onclick="() => SelectCategory(c.Id)">
+                        <span>@c.Icon</span> @c.T(Lang.Current).Name
+                    </button>
+                }
+            </div>
+        </div>
+
+        @if (activeChips.Count > 0)
+        {
+            <div class="active-chips">
+                @foreach (var chip in activeChips)
+                {
+                    <button class="active-chip" @onclick="chip.Clear">@chip.Label <span>✕</span></button>
+                }
+                <button class="active-chip clear-all" @onclick="ClearFilters">@Lang["menu.clear"]</button>
+            </div>
+        }
+
+        @if (results.Count == 0)
+        {
+            <div class="empty-state reveal">
+                <span style="font-size:3rem">🍽️</span>
+                <p class="muted">@Lang["menu.noresults"]</p>
+            </div>
+        }
+        else
+        {
+            <div class="item-list">
+                @foreach (var item in results)
+                {
+                    <ItemRow Item="item" @key="item.Id" />
+                }
+            </div>
+        }
+    </div>
+</section>
+
+@if (filtersOpen)
+{
+    <div class="overlay filter-overlay" @onclick="() => filtersOpen = false">
+        <div class="filter-drawer" @onclick:stopPropagation="true">
+            <div class="filter-drawer-head">
+                <h3>@Lang["menu.filters"]</h3>
+                <button class="icon-btn" @onclick="() => filtersOpen = false">✕</button>
+            </div>
+
+            <div class="filter-drawer-body">
+                <h4>@Lang["nav.menu"]</h4>
+                <div class="filter-tags">
+                    <span class="tag @(selectedCat is null ? "on" : "")" @onclick="() => SelectCategory(null)">@Lang["menu.all"]</span>
+                    @foreach (var c in categories)
+                    {
+                        <span class="tag @(selectedCat == c.Id ? "on" : "")" @onclick="() => SelectCategory(c.Id)">@c.Icon @c.T(Lang.Current).Name</span>
+                    }
+                </div>
+
+                <h4>@Lang["menu.dietary"]</h4>
+                <div class="filter-tags">
+                    @foreach (var (tag, key) in dietaryOptions)
+                    {
+                        <span class="tag @(required.HasFlag(tag) ? "on" : "")" @onclick="() => ToggleTag(tag)">@Lang[key]</span>
+                    }
+                </div>
+
+                <h4>@Lang["menu.price"]</h4>
+                <div class="range-row">
+                    <input type="number" placeholder="0" @bind="minPrice" @bind:after="() => ApplyFilters()" />
+                    <span>–</span>
+                    <input type="number" placeholder="∞" @bind="maxPrice" @bind:after="() => ApplyFilters()" />
+                </div>
+
+                <h4>&nbsp;</h4>
+                <label class="check-row"><input type="checkbox" @bind="availableOnly" @bind:after="() => ApplyFilters()" /> @Lang["menu.available"]</label>
+                <label class="check-row"><input type="checkbox" @bind="popularOnly" @bind:after="() => ApplyFilters()" /> @Lang["menu.popular"]</label>
+            </div>
+
+            <div class="filter-drawer-foot">
+                <button class="btn btn-ghost" @onclick="ClearFilters">@Lang["menu.clear"]</button>
+                <button class="btn btn-primary" @onclick="() => filtersOpen = false">@($"{results.Count}")  ✓</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "cat")] public string? CatSlug { get; set; }
+
+    List<Category> categories = [];
+    List<MenuItem> results = [];
+    Guid? selectedCat;
+    string searchText = "";
+    int? minPrice, maxPrice;
+    DietaryTag required = DietaryTag.None;
+    bool availableOnly, popularOnly;
+    bool filtersOpen;
+    System.Threading.Timer? debounce;
+
+    readonly (DietaryTag, string)[] dietaryOptions =
+    [
+        (DietaryTag.Vegan, "tag.vegan"), (DietaryTag.Vegetarian, "tag.vegetarian"),
+        (DietaryTag.GlutenFree, "tag.glutenfree"), (DietaryTag.Spicy, "tag.spicy"),
+        (DietaryTag.Halal, "tag.halal"), (DietaryTag.DairyFree, "tag.dairyfree"),
+    ];
+
+    // Active filters exclude the always-visible category strip + search box.
+    int activeCount =>
+        Display.Tags(required, Lang.Current).Count()
+        + (minPrice.HasValue ? 1 : 0) + (maxPrice.HasValue ? 1 : 0)
+        + (availableOnly ? 1 : 0) + (popularOnly ? 1 : 0);
+
+    List<(string Label, Action Clear)> activeChips
+    {
+        get
+        {
+            var list = new List<(string, Action)>();
+            foreach (var (label, _) in Display.Tags(required, Lang.Current))
+            {
+                var captured = dietaryOptions.First(o => Lang[o.Item2] == label).Item1;
+                list.Add((label, () => { required &= ~captured; _ = ApplyFilters(); }));
+            }
+            if (minPrice.HasValue) list.Add(($"≥ {minPrice}₪", () => { minPrice = null; _ = ApplyFilters(); }));
+            if (maxPrice.HasValue) list.Add(($"≤ {maxPrice}₪", () => { maxPrice = null; _ = ApplyFilters(); }));
+            if (availableOnly) list.Add((Lang["menu.available"], () => { availableOnly = false; _ = ApplyFilters(); }));
+            if (popularOnly) list.Add((Lang["menu.popular"], () => { popularOnly = false; _ = ApplyFilters(); }));
+            return list;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        categories = await MenuSvc.GetCategoryTreeAsync();
+        if (!string.IsNullOrEmpty(CatSlug))
+        {
+            var match = categories.FirstOrDefault(c => c.Slug == CatSlug);
+            selectedCat = match?.Id;
+            if (match is not null)
+                await Analytics.RecordAsync(ViewEventType.CategoryView, match.Id, Lang.Current);
+        }
+        await ApplyFilters();
+    }
+
+    async Task SelectCategory(Guid? id)
+    {
+        selectedCat = id;
+        if (id is { } cid) await Analytics.RecordAsync(ViewEventType.CategoryView, cid, Lang.Current);
+        await ApplyFilters();
+    }
+
+    void OnSearchInput(ChangeEventArgs e)
+    {
+        searchText = e.Value?.ToString() ?? "";
+        debounce?.Dispose();
+        debounce = new System.Threading.Timer(async _ =>
+            await InvokeAsync(async () =>
+            {
+                await ApplyFilters(recordSearch: true);
+                StateHasChanged();
+            }), null, 350, System.Threading.Timeout.Infinite);
+    }
+
+    void ToggleTag(DietaryTag tag)
+    {
+        required ^= tag;
+        _ = ApplyFilters();
+    }
+
+    async Task ApplyFilters(bool recordSearch = false)
+    {
+        results = await MenuSvc.SearchAsync(new MenuSearchQuery
+        {
+            Text = searchText,
+            Language = Lang.Current,
+            CategoryId = selectedCat,
+            MinPrice = minPrice,
+            MaxPrice = maxPrice,
+            RequiredTags = required,
+            AvailableOnly = availableOnly,
+            PopularOnly = popularOnly,
+        });
+
+        if (recordSearch && !string.IsNullOrWhiteSpace(searchText))
+            await Analytics.RecordAsync(ViewEventType.Search, null, Lang.Current, searchText);
+    }
+
+    async Task ClearFilters()
+    {
+        searchText = ""; minPrice = maxPrice = null; required = DietaryTag.None;
+        availableOnly = popularOnly = false;
+        await ApplyFilters();
+    }
+
+    public void Dispose() => debounce?.Dispose();
+}

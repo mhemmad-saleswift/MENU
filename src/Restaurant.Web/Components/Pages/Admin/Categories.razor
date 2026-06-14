@@ -1,0 +1,165 @@
+@page "/admin/categories"
+@layout AdminLayout
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMenuAdminService Admin
+@inject LanguageState Lang
+
+<PageTitle>@Lang["admin.categories"] — @Lang["brand"]</PageTitle>
+
+<div class="admin-head">
+    <h1>@Lang["admin.categories"]</h1>
+    <button class="btn btn-primary" @onclick="() => OpenEditor(null)">＋ @Lang["common.add"]</button>
+</div>
+
+<div class="panel">
+    <p class="muted" style="margin-bottom:1rem">Drag rows by the handle to reorder how categories appear on the menu.</p>
+    <div class="table-scroll">
+    <table class="data-table">
+        <thead>
+            <tr><th></th><th>Icon</th><th>Name (EN)</th><th>Items</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var c in categories)
+            {
+                <tr class="drag-row @(dragId == c.Id ? "dragging" : "") @(overId == c.Id ? "over" : "")"
+                    draggable="true"
+                    @ondragstart="() => dragId = c.Id"
+                    @ondragenter="() => overId = c.Id"
+                    @ondragend="OnDrop"
+                    @ondragover:preventDefault="true">
+                    <td class="drag-handle">⠿</td>
+                    <td style="font-size:1.4rem">@c.Icon</td>
+                    <td><strong>@c.T(Language.English).Name</strong><br /><span class="muted" style="font-size:.8rem">@c.Slug</span></td>
+                    <td>@itemCounts.GetValueOrDefault(c.Id)</td>
+                    <td><span class="pill @(c.IsActive ? "on" : "off")">@(c.IsActive ? "Active" : "Hidden")</span></td>
+                    <td>
+                        <div class="flex gap">
+                            <button class="btn btn-ghost btn-sm" @onclick="() => OpenEditor(c)">@Lang["common.edit"]</button>
+                            <button class="btn btn-danger btn-sm" @onclick="() => confirmDelete = c.Id">@Lang["common.delete"]</button>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    </div>
+</div>
+
+@if (editing is not null)
+{
+    <div class="overlay" @onclick="Close">
+        <div class="drawer" @onclick:stopPropagation="true">
+            <h2 style="margin-bottom:1.2rem">@(editing.Id == Guid.Empty ? "New" : "Edit") category</h2>
+            <div class="form-grid">
+                <div class="field-row">
+                    <div class="field"><label>Slug</label><input @bind="editing.Slug" /></div>
+                    <div class="field"><label>Icon (emoji)</label><input @bind="editing.Icon" /></div>
+                </div>
+                @foreach (var lang in langs)
+                {
+                    var tr = GetTr(lang);
+                    <div class="field-row">
+                        <div class="field"><label>Name (@lang)</label><input @bind="tr.Name" /></div>
+                        <div class="field"><label>Description (@lang)</label><input @bind="tr.Description" /></div>
+                    </div>
+                }
+                <label class="check-row"><input type="checkbox" @bind="editing.IsActive" /> Active (visible on menu)</label>
+                <div class="flex gap" style="justify-content:flex-end;margin-top:.5rem">
+                    <button class="btn btn-ghost" @onclick="Close">@Lang["common.cancel"]</button>
+                    <button class="btn btn-primary" @onclick="Save">@Lang["common.save"]</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (confirmDelete is { } delId)
+{
+    <div class="overlay" @onclick="() => confirmDelete = null">
+        <div class="drawer" @onclick:stopPropagation="true" style="max-width:420px;text-align:center">
+            <h2>@Lang["common.delete"]?</h2>
+            <p class="muted">This will remove the category and all its items.</p>
+            <div class="flex gap" style="justify-content:center;margin-top:1rem">
+                <button class="btn btn-ghost" @onclick="() => confirmDelete = null">@Lang["common.cancel"]</button>
+                <button class="btn btn-danger" @onclick="() => Delete(delId)">@Lang["common.confirm"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    List<Category> categories = [];
+    Dictionary<Guid, int> itemCounts = new();
+    Category? editing;
+    Guid? confirmDelete;
+    Guid dragId, overId;
+
+    readonly Language[] langs = [Language.English, Language.Arabic, Language.Hebrew];
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    async Task Load()
+    {
+        categories = await Admin.GetCategoriesFlatAsync();
+        var items = await Admin.GetItemsForAdminAsync();
+        itemCounts = items.GroupBy(i => i.CategoryId).ToDictionary(g => g.Key, g => g.Count());
+    }
+
+    void OpenEditor(Category? c)
+    {
+        if (c is null)
+        {
+            editing = new Category { IsActive = true, Icon = "🍴" };
+        }
+        else
+        {
+            // Work on a detached copy so cancel discards edits.
+            editing = new Category
+            {
+                Id = c.Id, Slug = c.Slug, Icon = c.Icon, IsActive = c.IsActive,
+                SortOrder = c.SortOrder, ParentId = c.ParentId,
+                Translations = c.Translations.Select(t => new CategoryTranslation
+                { Language = t.Language, Name = t.Name, Description = t.Description }).ToList(),
+            };
+        }
+    }
+
+    CategoryTranslation GetTr(Language lang)
+    {
+        var tr = editing!.Translations.FirstOrDefault(t => t.Language == lang);
+        if (tr is null) { tr = new CategoryTranslation { Language = lang }; editing.Translations.Add(tr); }
+        return tr;
+    }
+
+    void Close() => editing = null;
+
+    async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(editing!.Slug))
+            editing.Slug = (editing.Translations.FirstOrDefault()?.Name ?? "category").ToLowerInvariant().Replace(' ', '-');
+        await Admin.UpsertCategoryAsync(editing);
+        editing = null;
+        await Load();
+    }
+
+    async Task Delete(Guid id)
+    {
+        await Admin.DeleteCategoryAsync(id);
+        confirmDelete = null;
+        await Load();
+    }
+
+    async Task OnDrop()
+    {
+        if (dragId != Guid.Empty && overId != Guid.Empty && dragId != overId)
+        {
+            var list = categories.Select(c => c.Id).ToList();
+            list.Remove(dragId);
+            list.Insert(list.IndexOf(overId), dragId);
+            await Admin.ReorderCategoriesAsync(list);
+            await Load();
+        }
+        dragId = overId = Guid.Empty;
+    }
+}

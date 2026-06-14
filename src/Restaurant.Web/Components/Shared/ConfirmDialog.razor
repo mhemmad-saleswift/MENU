@@ -1,0 +1,19 @@
+@inject LanguageState Lang
+
+<div class="overlay" @onclick="OnCancel">
+    <div class="drawer" @onclick:stopPropagation="true" style="max-width:420px;text-align:center">
+        <h2>@Title</h2>
+        <p class="muted">@Message</p>
+        <div class="flex gap" style="justify-content:center;margin-top:1rem">
+            <button class="btn btn-ghost" @onclick="OnCancel">@Lang["common.cancel"]</button>
+            <button class="btn btn-danger" @onclick="OnConfirm">@Lang["common.confirm"]</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Message { get; set; } = "";
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public EventCallback OnConfirm { get; set; }
+}

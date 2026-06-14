@@ -1,0 +1,21 @@
+@inherits LayoutComponentBase
+@inject LanguageState Lang
+
+<SiteHeader />
+
+<main>
+    @Body
+</main>
+
+<footer class="site-footer">
+    <div class="container">
+        <div class="brand"><span class="dot"></span>@Lang["brand"]</div>
+        <p class="muted">© @DateTime.Now.Year @Lang["brand"] · Crafted with care · @Lang.Current.NativeName()</p>
+    </div>
+</footer>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>

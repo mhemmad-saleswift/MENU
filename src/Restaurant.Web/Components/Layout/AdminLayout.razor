@@ -1,0 +1,37 @@
+@inherits LayoutComponentBase
+@inject LanguageState Lang
+@inject NavigationManager Nav
+
+<div class="admin-shell">
+    <aside class="admin-sidebar">
+        <a class="brand" href="/admin"><span class="dot"></span>@Lang["brand"]</a>
+        <a href="/admin" class="@Active("/admin", true)">📊 <span>@Lang["admin.dashboard"]</span></a>
+        <a href="/admin/categories" class="@Active("/admin/categories")">🗂️ <span>@Lang["admin.categories"]</span></a>
+        <a href="/admin/items" class="@Active("/admin/items")">🍽️ <span>@Lang["admin.items"]</span></a>
+        <a href="/admin/ai" class="@Active("/admin/ai")">✨ <span>@Lang["admin.ai"]</span></a>
+        <div class="spacer"></div>
+        <a href="/" >🏠 <span>@Lang["nav.home"]</span></a>
+        <form method="post" action="/admin/logout">
+            <button type="submit" class="btn btn-ghost btn-sm" style="width:100%">@Lang["admin.logout"]</button>
+        </form>
+    </aside>
+
+    <main class="admin-main">
+        @Body
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    string Active(string href, bool exact = false)
+    {
+        var path = new Uri(Nav.Uri).AbsolutePath.TrimEnd('/');
+        var target = href.TrimEnd('/');
+        return (exact ? path == target : path == target || path.StartsWith(target + "/")) ? "active" : "";
+    }
+}

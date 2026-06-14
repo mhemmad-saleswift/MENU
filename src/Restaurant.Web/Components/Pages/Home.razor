@@ -1,0 +1,69 @@
+@page "/"
+@inject IMenuService Menu
+@inject LanguageState Lang
+
+<PageTitle>@Lang["brand"] — @Lang["menu.title"]</PageTitle>
+
+<section class="hero">
+    <div class="hero-bg" style="background-image:url('@(banner?.ImageUrl ?? "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600")')"></div>
+    <div class="hero-inner">
+        <div class="eyebrow">@Lang.Current.NativeName()</div>
+        <h1>@(banner?.T(Lang.Current).Title ?? Lang["brand"])</h1>
+        <p>@(banner?.T(Lang.Current).Subtitle ?? "")</p>
+        <a class="btn btn-primary" href="/menu">@Lang["hero.cta"] →</a>
+    </div>
+    <div class="scroll-cue">⌄</div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="section-head reveal">
+            <div class="eyebrow">@Lang["home.categories"]</div>
+            <h2>@Lang["menu.title"]</h2>
+        </div>
+        <div class="cat-grid">
+            @foreach (var c in categories)
+            {
+                <a class="cat-card reveal" href="/menu?cat=@c.Slug">
+                    <div class="emoji">@(c.Icon ?? "🍴")</div>
+                    <div class="label">
+                        <h3>@c.T(Lang.Current).Name</h3>
+                        <span>@c.T(Lang.Current).Description</span>
+                    </div>
+                </a>
+            }
+        </div>
+    </div>
+</section>
+
+@if (featured.Count > 0)
+{
+    <section class="section" style="background:var(--bg-sunken)">
+        <div class="container">
+            <div class="section-head reveal">
+                <div class="eyebrow">★</div>
+                <h2>@Lang["home.featured"]</h2>
+                <p>@Lang["home.popular"]</p>
+            </div>
+            <div class="item-grid">
+                @foreach (var item in featured)
+                {
+                    <ItemCard Item="item" />
+                }
+            </div>
+        </div>
+    </section>
+}
+
+@code {
+    List<Category> categories = [];
+    List<MenuItem> featured = [];
+    Banner? banner;
+
+    protected override async Task OnInitializedAsync()
+    {
+        categories = await Menu.GetCategoryTreeAsync();
+        featured = await Menu.GetFeaturedAsync(8);
+        banner = (await Menu.GetActiveBannersAsync()).FirstOrDefault();
+    }
+}

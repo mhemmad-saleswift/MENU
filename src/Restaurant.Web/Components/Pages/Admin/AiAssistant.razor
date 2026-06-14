@@ -1,0 +1,112 @@
+@page "/admin/ai"
+@layout AdminLayout
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IRestaurantAgent Agent
+@inject LanguageState Lang
+
+<PageTitle>@Lang["admin.ai"] — @Lang["brand"]</PageTitle>
+
+<div class="admin-head">
+    <h1>✨ @Lang["admin.ai"]</h1>
+</div>
+
+<div class="ai-console">
+    <p class="muted" style="margin-bottom:1rem">
+        Describe what you want and I'll prepare a plan. Destructive actions need your confirmation before they run.
+    </p>
+
+    <div class="ai-input-bar">
+        <input placeholder="e.g. Add a new Mojito for 25₪ in the Drinks category"
+               @bind="input" @bind:event="oninput" @onkeydown="OnKey" />
+        <button class="btn btn-primary" @onclick="Plan" disabled="@busy">@(busy ? "…" : "Plan")</button>
+    </div>
+
+    <div class="ai-suggestions">
+        @foreach (var s in suggestions)
+        {
+            <button class="ai-chip" @onclick="() => Use(s)">@s</button>
+        }
+    </div>
+
+    @if (plan is not null)
+    {
+        <div class="ai-plan ai-msg">
+            <strong>Plan for:</strong> <span class="muted">“@plan.Instruction”</span>
+            @if (plan.HasActions)
+            {
+                <div style="margin-top:.8rem">
+                    @foreach (var a in plan.Actions)
+                    {
+                        <div class="ai-action @(a.IsDestructive ? "destructive" : "")">
+                            <span class="dot"></span>
+                            <span>@a.Summary</span>
+                            @if (a.IsDestructive)
+                            {
+                                <span class="tag spicy" style="margin-inline-start:auto">needs confirmation</span>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(plan.Note))
+            {
+                <div class="ai-note">@plan.Note</div>
+            }
+
+            @if (plan.HasActions)
+            {
+                <div class="flex gap" style="margin-top:1rem">
+                    <button class="btn @(plan.RequiresConfirmation ? "btn-danger" : "btn-primary")" @onclick="Execute" disabled="@busy">
+                        @(plan.RequiresConfirmation ? "Confirm & run" : "Run")
+                    </button>
+                    <button class="btn btn-ghost" @onclick="() => plan = null">@Lang["common.cancel"]</button>
+                </div>
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(result))
+    {
+        <div class="ai-result">✓ @result</div>
+    }
+</div>
+
+@code {
+    string input = "";
+    string? result;
+    AgentPlan? plan;
+    bool busy;
+
+    readonly string[] suggestions =
+    [
+        "Add a new Mojito for 25₪ in the Drinks category",
+        "Mark all pizza items as unavailable",
+        "Create a Specials category",
+        "Increase all drink prices by 5%",
+    ];
+
+    void Use(string s) { input = s; }
+
+    async Task OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await Plan();
+    }
+
+    async Task Plan()
+    {
+        if (string.IsNullOrWhiteSpace(input)) return;
+        busy = true; result = null;
+        plan = await Agent.PlanAsync(input, Lang.Current);
+        busy = false;
+    }
+
+    async Task Execute()
+    {
+        if (plan is null) return;
+        busy = true;
+        result = await Agent.ExecuteAsync(plan);
+        plan = null; input = "";
+        busy = false;
+    }
+}

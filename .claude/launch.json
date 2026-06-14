@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "viva-italia",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/Restaurant.Web/Restaurant.Web.csproj", "--launch-profile", "http"],
+      "port": 5221
+    }
+  ]
+}

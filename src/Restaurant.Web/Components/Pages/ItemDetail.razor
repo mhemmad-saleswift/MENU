@@ -1,0 +1,158 @@
+@page "/item/{slug}"
+@inject IMenuService Menu
+@inject IAnalyticsService Analytics
+@inject LanguageState Lang
+@inject NavigationManager Nav
+
+@if (item is null)
+{
+    <section class="section"><div class="container"><p class="muted">…</p></div></section>
+}
+else
+{
+    var t = item.T(Lang.Current);
+    <PageTitle>@t.Name — @Lang["brand"]</PageTitle>
+    <HeadContent>
+        <meta name="description" content="@t.Description" />
+        <meta property="og:title" content="@t.Name" />
+        <meta property="og:image" content="@item.PrimaryImage" />
+    </HeadContent>
+
+    <section class="section">
+        <div class="container">
+            <a class="btn btn-ghost btn-sm" href="/menu" style="margin-bottom:1.5rem">← @Lang["item.back"]</a>
+
+            <div class="detail-grid">
+                <div class="gallery">
+                    <div class="gallery-main">
+                        @if (item.HasAr)
+                        {
+                            <model-viewer src="@item.Model3dUrl" poster="@item.PrimaryImage"
+                                          camera-controls auto-rotate ar ar-modes="webxr scene-viewer quick-look"
+                                          shadow-intensity="1" tone-mapping="neutral"
+                                          alt="@t.Name 3D model"></model-viewer>
+                        }
+                        else if (!string.IsNullOrEmpty(item.PrimaryImage))
+                        {
+                            <img id="gallery-main-img" src="@item.PrimaryImage" alt="@t.Name" />
+                        }
+                        else
+                        {
+                            <div class="item-media placeholder"><span>🍽️</span></div>
+                        }
+                    </div>
+
+                    @if (item.Images.Count > 1)
+                    {
+                        <div class="gallery-thumbs">
+                            @foreach (var img in item.Images.OrderBy(i => i.SortOrder))
+                            {
+                                <img src="@img.Url" data-full="@img.Url" class="@(img.IsPrimary ? "active" : "")" alt="" />
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div class="detail-info">
+                    <div class="flex gap center wrap" style="margin-bottom:.6rem">
+                        @if (item.IsRecommended)
+                        {
+                            <span class="badge badge-rec">★ @Lang["badge.recommended"]</span>
+                        }
+                        @if (item.IsPopular)
+                        {
+                            <span class="badge badge-popular">🔥 @Lang["badge.popular"]</span>
+                        }
+                    </div>
+
+                    <h1>@t.Name</h1>
+                    <div class="detail-price">@item.Price.ToString("0.##")@item.Currency</div>
+
+                    @if (!item.IsAvailable)
+                    {
+                        <p class="error-text">● @Lang["item.unavailable"]</p>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(t.Description))
+                    {
+                        <p class="muted">@t.Description</p>
+                    }
+
+                    <div class="dietary-row mt">
+                        @foreach (var (label, css) in Display.Tags(item.DietaryTags, Lang.Current))
+                        {
+                            <span class="tag @css">@label</span>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(t.Ingredients))
+                    {
+                        <div class="detail-section">
+                            <h3>@Lang["item.ingredients"]</h3>
+                            <p>@t.Ingredients</p>
+                        </div>
+                    }
+
+                    @if (item.Allergens != Allergen.None)
+                    {
+                        <div class="detail-section">
+                            <h3>@Lang["item.allergens"]</h3>
+                            <div class="allergen-list">
+                                @foreach (var a in Display.Allergens(item.Allergens, Lang.Current))
+                                {
+                                    <span class="allergen">⚠ @a</span>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @if (item.HasAr)
+                    {
+                        <p class="ai-note mt">📦 @Lang["item.viewar"] — tap the AR icon on the model above.</p>
+                    }
+
+                    @if (!string.IsNullOrEmpty(item.VideoUrl))
+                    {
+                        <div class="detail-section">
+                            <video controls style="width:100%;border-radius:var(--radius)" src="@item.VideoUrl"></video>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (related.Count > 0)
+            {
+                <div class="related">
+                    <div class="section-head reveal" style="text-align:start;margin:3rem 0 1.4rem">
+                        <h2 style="font-size:1.8rem">@Lang["home.featured"]</h2>
+                    </div>
+                    <div class="item-list">
+                        @foreach (var r in related)
+                        {
+                            <ItemRow Item="r" @key="r.Id" />
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    MenuItem? item;
+    List<MenuItem> related = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        item = await Menu.GetItemBySlugAsync(Slug);
+        if (item is not null)
+        {
+            await Analytics.RecordAsync(ViewEventType.ItemView, item.Id, Lang.Current);
+            related = (await Menu.GetItemsAsync(item.CategoryId))
+                .Where(i => i.Id != item.Id)
+                .OrderByDescending(i => i.IsRecommended).ThenByDescending(i => i.IsPopular)
+                .Take(4).ToList();
+        }
+    }
+}

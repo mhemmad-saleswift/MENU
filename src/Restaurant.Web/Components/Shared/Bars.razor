@@ -1,0 +1,20 @@
+@if (Entries.Count == 0)
+{
+    <p class="muted">No data yet.</p>
+}
+else
+{
+    var max = Entries.Max(e => e.Count);
+    @foreach (var e in Entries)
+    {
+        <div class="bar-row">
+            <span class="name" title="@e.Label">@e.Label</span>
+            <span class="bar-track"><span class="bar-fill" style="width:@(max == 0 ? 0 : e.Count * 100 / max)%"></span></span>
+            <span class="num">@e.Count</span>
+        </div>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<RankedEntry> Entries { get; set; } = [];
+}

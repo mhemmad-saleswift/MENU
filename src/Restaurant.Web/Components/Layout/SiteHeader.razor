@@ -1,0 +1,44 @@
+@inject LanguageState Lang
+@inject NavigationManager Nav
+@inject IHttpContextAccessor Http
+
+@{
+    var path = new Uri(Nav.Uri).PathAndQuery;
+    var ret = Uri.EscapeDataString(path);
+    var theme = Http.HttpContext?.Request.Cookies["theme"] == "dark" ? "dark" : "light";
+    var nextTheme = theme == "dark" ? "light" : "dark";
+}
+
+<header class="site-header">
+    <div class="container">
+        <a class="brand" href="/"><span class="dot"></span>@Lang["brand"]</a>
+
+        <nav class="main-nav">
+            <a href="/" class="@Active("/")"><span class="nav-label">@Lang["nav.home"]</span></a>
+            <a href="/menu" class="@Active("/menu")"><span class="nav-label">@Lang["nav.menu"]</span></a>
+        </nav>
+
+        <div class="header-tools">
+            <details class="lang-menu">
+                <summary class="icon-btn" title="Language">🌐</summary>
+                <div class="lang-dropdown">
+                    <a class="@(Lang.Current == Language.English ? "sel" : "")" href="/set-language/en?returnUrl=@ret">English <span>EN</span></a>
+                    <a class="@(Lang.Current == Language.Arabic ? "sel" : "")" href="/set-language/ar?returnUrl=@ret">العربية <span>AR</span></a>
+                    <a class="@(Lang.Current == Language.Hebrew ? "sel" : "")" href="/set-language/he?returnUrl=@ret">עברית <span>HE</span></a>
+                </div>
+            </details>
+
+            <a class="icon-btn" href="/set-theme/@nextTheme?returnUrl=@ret" title="Toggle theme">@(theme == "dark" ? "☀️" : "🌙")</a>
+            <a class="icon-btn" href="/admin" title="Admin">⚙️</a>
+        </div>
+    </div>
+</header>
+
+@code {
+    string Active(string href)
+    {
+        var path = new Uri(Nav.Uri).AbsolutePath.TrimEnd('/');
+        if (string.IsNullOrEmpty(path)) path = "/";
+        return path == href.TrimEnd('/') || (href == "/" && path == "/") ? "active" : "";
+    }
+}

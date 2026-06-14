@@ -1,0 +1,37 @@
+@page "/admin/login"
+@layout EmptyLayout
+@inject LanguageState Lang
+
+<PageTitle>@Lang["admin.login"] — @Lang["brand"]</PageTitle>
+
+<div class="login-wrap">
+    <div class="login-card">
+        <div class="brand"><span class="dot"></span>@Lang["brand"]</div>
+        <p class="muted" style="margin-bottom:1.6rem">@Lang["admin.dashboard"]</p>
+
+        @if (Error)
+        {
+            <p class="error-text">Invalid username or password.</p>
+        }
+
+        <form method="post" action="/admin/login" class="form-grid" style="text-align:start">
+            <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+            <div class="field">
+                <label>@Lang["admin.username"]</label>
+                <input name="username" autocomplete="username" required />
+            </div>
+            <div class="field">
+                <label>@Lang["admin.password"]</label>
+                <input name="password" type="password" autocomplete="current-password" required />
+            </div>
+            <button type="submit" class="btn btn-primary" style="justify-content:center">@Lang["admin.login"]</button>
+        </form>
+        <p class="muted" style="margin-top:1.2rem;font-size:.8rem">Demo: admin / admin123</p>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error_ { get; set; }
+    [SupplyParameterFromQuery(Name = "returnUrl")] public string? ReturnUrl { get; set; }
+    bool Error => Error_ == "1";
+}

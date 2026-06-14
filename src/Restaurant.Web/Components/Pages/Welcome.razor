@@ -1,0 +1,40 @@
+@page "/welcome"
+@layout EmptyLayout
+
+<PageTitle>Viva Italia</PageTitle>
+
+<div class="welcome-wrap">
+    <div class="welcome-card">
+        <div class="welcome-brand">
+            <span class="welcome-flag">🇮🇹</span>
+            <h1>Viva Italia</h1>
+        </div>
+        <p class="welcome-tag">Authentic Italian, crafted with passion</p>
+
+        <div class="welcome-prompt">
+            <span>Choose your language</span>
+            <span dir="rtl">اختر لغتك</span>
+            <span dir="rtl">בחר את השפה</span>
+        </div>
+
+        <div class="welcome-langs">
+            <a class="welcome-lang" href="/set-language/en?returnUrl=@Ret">
+                <span class="wl-native">English</span>
+                <span class="wl-code">EN</span>
+            </a>
+            <a class="welcome-lang" href="/set-language/ar?returnUrl=@Ret" dir="rtl">
+                <span class="wl-native">العربية</span>
+                <span class="wl-code">AR</span>
+            </a>
+            <a class="welcome-lang" href="/set-language/he?returnUrl=@Ret" dir="rtl">
+                <span class="wl-native">עברית</span>
+                <span class="wl-code">HE</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "returnUrl")] public string? ReturnUrl { get; set; }
+    string Ret => Uri.EscapeDataString(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl);
+}

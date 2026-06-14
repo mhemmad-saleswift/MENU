@@ -1,0 +1,65 @@
+@page "/admin"
+@layout AdminLayout
+@attribute [Authorize]
+@inject IAnalyticsService Analytics
+@inject IMenuAdminService Admin
+@inject LanguageState Lang
+
+<PageTitle>@Lang["admin.dashboard"] — @Lang["brand"]</PageTitle>
+
+<div class="admin-head">
+    <h1>@Lang["admin.dashboard"]</h1>
+    <span class="muted">Last 30 days</span>
+</div>
+
+@if (summary is null)
+{
+    <p class="muted">…</p>
+}
+else
+{
+    <div class="stat-grid">
+        <div class="stat-card"><div class="v">@summary.TotalViews</div><div class="l">Total interactions</div></div>
+        <div class="stat-card"><div class="v">@itemCount</div><div class="l">Menu items</div></div>
+        <div class="stat-card"><div class="v">@catCount</div><div class="l">Categories</div></div>
+        <div class="stat-card"><div class="v">@summary.TopSearches.Count</div><div class="l">Unique searches</div></div>
+    </div>
+
+    <div class="two-col">
+        <div class="panel">
+            <h3>🍽️ Most viewed items</h3>
+            <Bars Entries="summary.TopItems" />
+        </div>
+        <div class="panel">
+            <h3>🗂️ Most viewed categories</h3>
+            <Bars Entries="summary.TopCategories" />
+        </div>
+    </div>
+
+    <div class="two-col" style="margin-top:1.4rem">
+        <div class="panel">
+            <h3>🔎 Popular searches</h3>
+            <Bars Entries="summary.TopSearches" />
+        </div>
+        <div class="panel">
+            <h3>🌐 Language usage</h3>
+            @{
+                var langEntries = summary.Languages
+                    .Select(l => new RankedEntry(l.Language.NativeName(), l.Count)).ToList();
+            }
+            <Bars Entries="langEntries" />
+        </div>
+    </div>
+}
+
+@code {
+    AnalyticsSummary? summary;
+    int itemCount, catCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        summary = await Analytics.GetSummaryAsync(30);
+        itemCount = (await Admin.GetItemsForAdminAsync()).Count;
+        catCount = (await Admin.GetCategoriesFlatAsync()).Count;
+    }
+}

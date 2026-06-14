@@ -1,0 +1,368 @@
+@page "/admin/items"
+@layout AdminLayout
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMenuAdminService Admin
+@inject IImageStorage Storage
+@inject LanguageState Lang
+
+<PageTitle>@Lang["admin.items"] — @Lang["brand"]</PageTitle>
+
+<div class="admin-head">
+    <h1>@Lang["admin.items"]</h1>
+    <button class="btn btn-primary" @onclick="() => OpenEditor(null)">＋ @Lang["common.add"]</button>
+</div>
+
+<div class="panel" style="margin-bottom:1.2rem">
+    <div class="flex gap center wrap between">
+        <div class="flex gap center wrap">
+            <select class="search-box" style="width:auto" @bind="filterCat" @bind:after="Load">
+                <option value="">@Lang["menu.all"]</option>
+                @foreach (var c in categories)
+                {
+                    <option value="@c.Id">@c.T(Language.English).Name</option>
+                }
+            </select>
+            <span class="muted">@items.Count items</span>
+        </div>
+
+        @if (selected.Count > 0)
+        {
+            <div class="flex gap center wrap">
+                <span class="muted">@selected.Count selected</span>
+                <button class="btn btn-ghost btn-sm" @onclick="() => BulkAvailability(true)">Mark available</button>
+                <button class="btn btn-ghost btn-sm" @onclick="() => BulkAvailability(false)">Mark unavailable</button>
+                <button class="btn btn-danger btn-sm" @onclick="() => confirmBulk = true">Delete selected</button>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="panel">
+    <div class="table-scroll">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th><input type="checkbox" checked="@(selected.Count == items.Count && items.Count > 0)" @onchange="ToggleAll" /></th>
+                <th></th><th>Name</th><th>Category</th><th>Price</th><th>Badges</th><th>Status</th><th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var i in items)
+            {
+                <tr>
+                    <td><input type="checkbox" checked="@selected.Contains(i.Id)" @onchange="() => ToggleSelect(i.Id)" /></td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(i.PrimaryImage))
+                        {
+                            <img class="row-thumb" src="@i.PrimaryImage" alt="" />
+                        }
+                        else
+                        {
+                            <span style="font-size:1.5rem">🍽️</span>
+                        }
+                    </td>
+                    <td><strong>@i.T(Language.English).Name</strong></td>
+                    <td class="muted">@CatName(i.CategoryId)</td>
+                    <td><strong>@i.Price.ToString("0.##")@i.Currency</strong></td>
+                    <td>
+                        @if (i.IsRecommended)
+                        {
+                            <span class="badge badge-rec">★</span>
+                        }
+                        @if (i.IsPopular)
+                        {
+                            <span class="badge badge-popular">🔥</span>
+                        }
+                        @if (i.HasAr)
+                        {
+                            <span class="tag">AR</span>
+                        }
+                    </td>
+                    <td>
+                        <button class="pill @(i.IsAvailable ? "on" : "off")" style="border:none;cursor:pointer"
+                                @onclick="() => Toggle(i)">@(i.IsAvailable ? "Available" : "Hidden")</button>
+                    </td>
+                    <td>
+                        <div class="flex gap">
+                            <button class="btn btn-ghost btn-sm" @onclick="() => OpenEditor(i)">@Lang["common.edit"]</button>
+                            <button class="btn btn-danger btn-sm" @onclick="() => confirmDelete = i.Id">✕</button>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    </div>
+</div>
+
+@if (editing is not null)
+{
+    <div class="overlay" @onclick="Close">
+        <div class="drawer" @onclick:stopPropagation="true">
+            <h2 style="margin-bottom:1.2rem">@(editing.Id == Guid.Empty ? "New" : "Edit") item</h2>
+            <div class="form-grid">
+                <div class="field-row">
+                    <div class="field"><label>Slug</label><input @bind="editing.Slug" /></div>
+                    <div class="field">
+                        <label>Category</label>
+                        <select @bind="editing.CategoryId">
+                            @foreach (var c in categories)
+                            {
+                                <option value="@c.Id">@c.T(Language.English).Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><label>Price</label><input type="number" step="0.5" @bind="editing.Price" /></div>
+                    <div class="field"><label>Currency</label><input @bind="editing.Currency" /></div>
+                </div>
+
+                <div class="flex gap wrap">
+                    <label class="check-row"><input type="checkbox" @bind="editing.IsAvailable" /> Available</label>
+                    <label class="check-row"><input type="checkbox" @bind="editing.IsPopular" /> Popular</label>
+                    <label class="check-row"><input type="checkbox" @bind="editing.IsRecommended" /> Chef's pick</label>
+                </div>
+
+                @foreach (var lang in langs)
+                {
+                    var tr = GetTr(lang);
+                    <div class="field"><label>Name (@lang)</label><input @bind="tr.Name" /></div>
+                    <div class="field"><label>Description (@lang)</label><textarea @bind="tr.Description"></textarea></div>
+                    <div class="field"><label>Ingredients (@lang)</label><input @bind="tr.Ingredients" /></div>
+                }
+
+                <div class="field">
+                    <label>Dietary tags</label>
+                    <div class="filter-tags">
+                        @foreach (var (tag, key) in dietaryOptions)
+                        {
+                            <span class="tag @(editing.DietaryTags.HasFlag(tag) ? "on" : "")"
+                                  @onclick="() => editing.DietaryTags ^= tag">@Lang[key]</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>Allergens</label>
+                    <div class="filter-tags">
+                        @foreach (var a in allergenOptions)
+                        {
+                            <span class="tag @(editing.Allergens.HasFlag(a) ? "on" : "")"
+                                  @onclick="() => editing.Allergens ^= a">@a</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>Images</label>
+                    @if (imageUrls.Count > 0)
+                    {
+                        <div class="img-thumbs">
+                            @foreach (var url in imageUrls.ToList())
+                            {
+                                <div class="img-thumb">
+                                    <img src="@url" alt="" />
+                                    @if (imageUrls.IndexOf(url) == 0)
+                                    {
+                                        <span class="img-primary">Primary</span>
+                                    }
+                                    <button type="button" class="img-remove" title="Remove" @onclick="() => imageUrls.Remove(url)">✕</button>
+                                </div>
+                            }
+                        </div>
+                    }
+                    <div class="flex gap center wrap">
+                        <label class="btn btn-ghost btn-sm">
+                            @(uploading ? "Uploading…" : "⬆ Upload images")
+                            <InputFile OnChange="OnUpload" multiple accept="image/*" style="display:none" disabled="@uploading" />
+                        </label>
+                        <input class="search-box" style="flex:1;min-width:160px" placeholder="…or paste an image URL" @bind="urlToAdd" />
+                        <button type="button" class="btn btn-ghost btn-sm" @onclick="AddUrl">＋ URL</button>
+                    </div>
+                    <span class="muted" style="font-size:.78rem">First image is the primary photo. JPG/PNG/WebP/GIF, up to 5&nbsp;MB each.</span>
+                    @if (!string.IsNullOrEmpty(uploadError))
+                    {
+                        <span class="error-text">@uploadError</span>
+                    }
+                </div>
+                <div class="field-row">
+                    <div class="field"><label>Video URL (optional)</label><input @bind="editing.VideoUrl" /></div>
+                    <div class="field"><label>3D model URL — .glb (enables AR)</label><input @bind="editing.Model3dUrl" /></div>
+                </div>
+
+                <div class="flex gap" style="justify-content:flex-end;margin-top:.5rem">
+                    <button class="btn btn-ghost" @onclick="Close">@Lang["common.cancel"]</button>
+                    <button class="btn btn-primary" @onclick="Save">@Lang["common.save"]</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (confirmDelete is { } delId)
+{
+    <ConfirmDialog Title="@DeleteTitle" Message="Delete this item permanently?"
+                   OnCancel="() => confirmDelete = null" OnConfirm="() => Delete(delId)" />
+}
+@if (confirmBulk)
+{
+    <ConfirmDialog Title="@DeleteTitle" Message="@($"Delete {selected.Count} selected items?")"
+                   OnCancel="() => confirmBulk = false" OnConfirm="BulkDelete" />
+}
+
+@code {
+    List<Category> categories = [];
+    List<MenuItem> items = [];
+    string filterCat = "";
+    HashSet<Guid> selected = [];
+    MenuItem? editing;
+    List<string> imageUrls = [];
+    string urlToAdd = "";
+    string? uploadError;
+    bool uploading;
+    Guid? confirmDelete;
+    bool confirmBulk;
+    string DeleteTitle => Lang["common.delete"];
+
+    readonly Language[] langs = [Language.English, Language.Arabic, Language.Hebrew];
+    readonly (DietaryTag, string)[] dietaryOptions =
+    [
+        (DietaryTag.Vegan, "tag.vegan"), (DietaryTag.Vegetarian, "tag.vegetarian"),
+        (DietaryTag.GlutenFree, "tag.glutenfree"), (DietaryTag.Spicy, "tag.spicy"),
+        (DietaryTag.Halal, "tag.halal"), (DietaryTag.DairyFree, "tag.dairyfree"),
+        (DietaryTag.NutFree, "tag.nutfree"), (DietaryTag.Organic, "tag.organic"),
+    ];
+    readonly Allergen[] allergenOptions =
+    [
+        Allergen.Gluten, Allergen.Dairy, Allergen.Eggs, Allergen.Nuts, Allergen.Peanuts,
+        Allergen.Soy, Allergen.Fish, Allergen.Shellfish, Allergen.Sesame,
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        categories = await Admin.GetCategoriesFlatAsync();
+        await Load();
+    }
+
+    async Task Load()
+    {
+        Guid? cat = Guid.TryParse(filterCat, out var g) ? g : null;
+        items = await Admin.GetItemsForAdminAsync(cat);
+        selected.RemoveWhere(id => items.All(i => i.Id != id));
+    }
+
+    string CatName(Guid id) => categories.FirstOrDefault(c => c.Id == id)?.T(Language.English).Name ?? "—";
+
+    void ToggleSelect(Guid id) { if (!selected.Add(id)) selected.Remove(id); }
+    void ToggleAll(ChangeEventArgs e)
+    {
+        if ((bool)e.Value! ) selected = items.Select(i => i.Id).ToHashSet();
+        else selected.Clear();
+    }
+
+    async Task Toggle(MenuItem i)
+    {
+        i.IsAvailable = !i.IsAvailable;
+        await Admin.UpsertItemAsync(i);
+        await Load();
+    }
+
+    void OpenEditor(MenuItem? i)
+    {
+        uploadError = null; urlToAdd = "";
+        if (i is null)
+        {
+            editing = new MenuItem { CategoryId = categories.FirstOrDefault()?.Id ?? Guid.Empty, IsAvailable = true, Currency = "₪" };
+            imageUrls = [];
+        }
+        else
+        {
+            editing = new MenuItem
+            {
+                Id = i.Id, Slug = i.Slug, CategoryId = i.CategoryId, Price = i.Price, Currency = i.Currency,
+                IsAvailable = i.IsAvailable, IsPopular = i.IsPopular, IsRecommended = i.IsRecommended,
+                DietaryTags = i.DietaryTags, Allergens = i.Allergens, VideoUrl = i.VideoUrl, Model3dUrl = i.Model3dUrl,
+                Translations = i.Translations.Select(t => new MenuItemTranslation
+                { Language = t.Language, Name = t.Name, Description = t.Description, Ingredients = t.Ingredients }).ToList(),
+            };
+            imageUrls = i.Images.OrderBy(im => im.SortOrder).Select(im => im.Url).ToList();
+        }
+    }
+
+    async Task OnUpload(InputFileChangeEventArgs e)
+    {
+        uploadError = null;
+        uploading = true;
+        const long maxBytes = 5 * 1024 * 1024;
+        try
+        {
+            foreach (var file in e.GetMultipleFiles(10))
+            {
+                if (file.Size > maxBytes)
+                {
+                    uploadError = $"“{file.Name}” is larger than 5 MB and was skipped.";
+                    continue;
+                }
+                await using var stream = file.OpenReadStream(maxBytes);
+                var url = await Storage.SaveAsync(stream, file.Name);
+                imageUrls.Add(url);
+            }
+        }
+        catch (Exception ex)
+        {
+            uploadError = $"Upload failed: {ex.Message}";
+        }
+        finally
+        {
+            uploading = false;
+        }
+    }
+
+    void AddUrl()
+    {
+        var u = urlToAdd.Trim();
+        if (!string.IsNullOrEmpty(u) && !imageUrls.Contains(u)) imageUrls.Add(u);
+        urlToAdd = "";
+    }
+
+    MenuItemTranslation GetTr(Language lang)
+    {
+        var tr = editing!.Translations.FirstOrDefault(t => t.Language == lang);
+        if (tr is null) { tr = new MenuItemTranslation { Language = lang }; editing.Translations.Add(tr); }
+        return tr;
+    }
+
+    void Close() => editing = null;
+
+    async Task Save()
+    {
+        editing!.Images = imageUrls.Select((u, idx) => new MenuItemImage { Url = u, SortOrder = idx, IsPrimary = idx == 0 }).ToList();
+        if (string.IsNullOrWhiteSpace(editing.Slug))
+            editing.Slug = (editing.Translations.FirstOrDefault()?.Name ?? "item").ToLowerInvariant().Replace(' ', '-') + "-" + Guid.NewGuid().ToString("N")[..4];
+        await Admin.UpsertItemAsync(editing);
+        editing = null;
+        await Load();
+    }
+
+    async Task Delete(Guid id) { await Admin.DeleteItemAsync(id); confirmDelete = null; await Load(); }
+
+    async Task BulkAvailability(bool available)
+    {
+        foreach (var i in items.Where(x => selected.Contains(x.Id)))
+        {
+            i.IsAvailable = available;
+            await Admin.UpsertItemAsync(i);
+        }
+        await Load();
+    }
+
+    async Task BulkDelete()
+    {
+        await Admin.BulkDeleteItemsAsync(selected.ToList());
+        selected.Clear();
+        confirmBulk = false;
+        await Load();
+    }
+}

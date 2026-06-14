@@ -1,0 +1,19 @@
+## .NET
+bin/
+obj/
+*.user
+
+## Local SQLite database (created + seeded on first run)
+*.db
+*.db-shm
+*.db-wal
+
+## Uploaded product images
+src/Restaurant.Web/uploads/
+
+## IDE / OS
+.vs/
+.idea/
+*.suo
+Thumbs.db
+.DS_Store
