@@ -48,12 +48,9 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          # 👇 Replace these three names with the exact secret names Azure's Deployment
-          #    Center created in your repo (Settings → Secrets → Actions). They look like
-          #    AZUREAPPSERVICE_CLIENTID_<hash>, etc.
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_REPLACE }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_REPLACE }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_REPLACE }}
+          client-id: ${{ secrets.__clientidsecretname__ }}
+          tenant-id: ${{ secrets.__tenantidsecretname__ }}
+          subscription-id: ${{ secrets.__subscriptionidsecretname__ }
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
