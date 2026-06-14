@@ -5,7 +5,7 @@
 @{
     var path = new Uri(Nav.Uri).PathAndQuery;
     var ret = Uri.EscapeDataString(path);
-    var theme = Http.HttpContext?.Request.Cookies["theme"] == "dark" ? "dark" : "light";
+    var theme = Http.HttpContext?.Request.Cookies["theme"] == "light" ? "light" : "dark";
     var nextTheme = theme == "dark" ? "light" : "dark";
 }
 

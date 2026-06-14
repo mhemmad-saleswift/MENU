@@ -28,6 +28,7 @@ public static class DbInitializer
         }
 
         // Applies pending migrations; on a brand-new database this creates the full schema.
+        // (Journal mode / busy timeout are forced to SMB-safe values by SqlitePragmaInterceptor.)
         await db.Database.MigrateAsync();
     }
 

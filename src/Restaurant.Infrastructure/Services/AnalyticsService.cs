@@ -3,16 +3,18 @@ using Restaurant.Domain;
 
 namespace Restaurant.Infrastructure.Services;
 
-public class AnalyticsService(MenuDbContext db) : IAnalyticsService
+public class AnalyticsService(IDbContextFactory<MenuDbContext> dbf) : IAnalyticsService
 {
     public async Task RecordAsync(ViewEventType type, Guid? targetId, Language lang, string? term = null, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         db.ViewEvents.Add(new ViewEvent { Type = type, TargetId = targetId, Language = lang, Term = term });
         await db.SaveChangesAsync(ct);
     }
 
     public async Task<AnalyticsSummary> GetSummaryAsync(int days = 30, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         var since = DateTime.UtcNow.AddDays(-days);
         var events = await db.ViewEvents.Where(e => e.CreatedUtc >= since).ToListAsync(ct);
 

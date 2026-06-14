@@ -58,9 +58,9 @@ builder.Services.AddCascadingAuthenticationState();
 var app = builder.Build();
 
 // Migrate (preserving any existing data), seed content, and provision the admin account.
-using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<MenuDbContext>();
+    var dbf = app.Services.GetRequiredService<IDbContextFactory<MenuDbContext>>();
+    await using var db = await dbf.CreateDbContextAsync();
     await DbInitializer.InitAsync(db);
     await DbSeeder.SeedAsync(db);
 
@@ -143,9 +143,10 @@ app.MapGet("/set-theme/{theme}", (string theme, string? returnUrl, HttpContext c
     return Results.Redirect(string.IsNullOrEmpty(returnUrl) ? "/" : returnUrl);
 });
 
-app.MapPost("/admin/login", async (HttpContext ctx, MenuDbContext db,
+app.MapPost("/admin/login", async (HttpContext ctx, IDbContextFactory<MenuDbContext> dbf,
     [FromForm] string username, [FromForm] string password, [FromForm] string? returnUrl) =>
 {
+    await using var db = await dbf.CreateDbContextAsync();
     var user = await db.AdminUsers.FirstOrDefaultAsync(u => u.Username == username);
     if (user is null || !PasswordHasher.Verify(password, user.PasswordHash))
         return Results.Redirect("/admin/login?error=1");

@@ -3,46 +3,55 @@ using Restaurant.Domain;
 
 namespace Restaurant.Infrastructure.Services;
 
-public class MenuAdminService(MenuDbContext db) : IMenuAdminService
+// Uses a short-lived DbContext per operation (via the factory). In Blazor Server a scoped
+// DbContext lives for the whole circuit, which causes stale change-tracking and the
+// "expected to affect 1 row but affected 0" concurrency errors on repeated saves.
+public class MenuAdminService(IDbContextFactory<MenuDbContext> dbf) : IMenuAdminService
 {
-    public Task<List<Category>> GetCategoriesFlatAsync(CancellationToken ct = default) =>
-        db.Categories.Include(c => c.Translations).OrderBy(c => c.SortOrder).ToListAsync(ct);
+    public async Task<List<Category>> GetCategoriesFlatAsync(CancellationToken ct = default)
+    {
+        await using var db = await dbf.CreateDbContextAsync(ct);
+        return await db.Categories.Include(c => c.Translations).OrderBy(c => c.SortOrder).ToListAsync(ct);
+    }
 
     public async Task<Category> UpsertCategoryAsync(Category category, CancellationToken ct = default)
     {
-        var existing = await db.Categories.Include(c => c.Translations)
-            .FirstOrDefaultAsync(c => c.Id == category.Id, ct);
+        await using var db = await dbf.CreateDbContextAsync(ct);
 
-        if (existing is null)
+        if (!await db.Categories.AnyAsync(c => c.Id == category.Id, ct))
         {
             if (category.SortOrder == 0)
                 category.SortOrder = (await db.Categories.MaxAsync(c => (int?)c.SortOrder, ct) ?? 0) + 1;
             db.Categories.Add(category);
+            await db.SaveChangesAsync(ct);
+            return category;
         }
-        else
-        {
-            existing.Slug = category.Slug;
-            existing.Icon = category.Icon;
-            existing.IsActive = category.IsActive;
-            existing.ParentId = category.ParentId;
-            existing.SortOrder = category.SortOrder;
-            // Replace translations.
-            db.CategoryTranslations.RemoveRange(existing.Translations);
-            existing.Translations = category.Translations;
-            category = existing;
-        }
+
+        // Update the row's columns directly (no change-tracking → no concurrency check).
+        await db.Categories.Where(c => c.Id == category.Id).ExecuteUpdateAsync(s => s
+            .SetProperty(c => c.Slug, category.Slug)
+            .SetProperty(c => c.Icon, category.Icon)
+            .SetProperty(c => c.IsActive, category.IsActive)
+            .SetProperty(c => c.ParentId, category.ParentId)
+            .SetProperty(c => c.SortOrder, category.SortOrder), ct);
+
+        // Replace its translations.
+        await db.CategoryTranslations.Where(t => t.CategoryId == category.Id).ExecuteDeleteAsync(ct);
+        foreach (var tr in category.Translations) { tr.Id = Guid.NewGuid(); tr.CategoryId = category.Id; }
+        db.CategoryTranslations.AddRange(category.Translations);
         await db.SaveChangesAsync(ct);
         return category;
     }
 
     public async Task DeleteCategoryAsync(Guid id, CancellationToken ct = default)
     {
-        var c = await db.Categories.FindAsync([id], ct);
-        if (c is not null) { db.Categories.Remove(c); await db.SaveChangesAsync(ct); }
+        await using var db = await dbf.CreateDbContextAsync(ct);
+        await db.Categories.Where(c => c.Id == id).ExecuteDeleteAsync(ct);
     }
 
     public async Task ReorderCategoriesAsync(IReadOnlyList<Guid> orderedIds, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         var cats = await db.Categories.Where(c => orderedIds.Contains(c.Id)).ToListAsync(ct);
         for (int i = 0; i < orderedIds.Count; i++)
         {
@@ -54,55 +63,66 @@ public class MenuAdminService(MenuDbContext db) : IMenuAdminService
 
     public async Task<List<MenuItem>> GetItemsForAdminAsync(Guid? categoryId = null, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         var q = db.MenuItems.Include(i => i.Images).Include(i => i.Translations).AsQueryable();
         if (categoryId is { } cid) q = q.Where(i => i.CategoryId == cid);
         return await q.OrderBy(i => i.SortOrder).ToListAsync(ct);
     }
 
-    public Task<MenuItem?> GetItemAsync(Guid id, CancellationToken ct = default) =>
-        db.MenuItems.Include(i => i.Images).Include(i => i.Translations).FirstOrDefaultAsync(i => i.Id == id, ct);
+    public async Task<MenuItem?> GetItemAsync(Guid id, CancellationToken ct = default)
+    {
+        await using var db = await dbf.CreateDbContextAsync(ct);
+        return await db.MenuItems.Include(i => i.Images).Include(i => i.Translations)
+            .FirstOrDefaultAsync(i => i.Id == id, ct);
+    }
 
     public async Task<MenuItem> UpsertItemAsync(MenuItem item, CancellationToken ct = default)
     {
-        var existing = await db.MenuItems.Include(i => i.Images).Include(i => i.Translations)
-            .FirstOrDefaultAsync(i => i.Id == item.Id, ct);
+        await using var db = await dbf.CreateDbContextAsync(ct);
 
-        if (existing is null)
+        if (!await db.MenuItems.AnyAsync(i => i.Id == item.Id, ct))
         {
             db.MenuItems.Add(item);
+            await db.SaveChangesAsync(ct);
+            return item;
         }
-        else
-        {
-            existing.Slug = item.Slug;
-            existing.CategoryId = item.CategoryId;
-            existing.Price = item.Price;
-            existing.Currency = item.Currency;
-            existing.IsAvailable = item.IsAvailable;
-            existing.IsPopular = item.IsPopular;
-            existing.IsRecommended = item.IsRecommended;
-            existing.SortOrder = item.SortOrder;
-            existing.DietaryTags = item.DietaryTags;
-            existing.Allergens = item.Allergens;
-            existing.VideoUrl = item.VideoUrl;
-            existing.Model3dUrl = item.Model3dUrl;
-            db.MenuItemImages.RemoveRange(existing.Images);
-            db.MenuItemTranslations.RemoveRange(existing.Translations);
-            existing.Images = item.Images;
-            existing.Translations = item.Translations;
-            item = existing;
-        }
+
+        // Update the row's columns directly (no change-tracking → no concurrency check).
+        await db.MenuItems.Where(i => i.Id == item.Id).ExecuteUpdateAsync(s => s
+            .SetProperty(i => i.Slug, item.Slug)
+            .SetProperty(i => i.CategoryId, item.CategoryId)
+            .SetProperty(i => i.Price, item.Price)
+            .SetProperty(i => i.Currency, item.Currency)
+            .SetProperty(i => i.IsAvailable, item.IsAvailable)
+            .SetProperty(i => i.IsPopular, item.IsPopular)
+            .SetProperty(i => i.IsRecommended, item.IsRecommended)
+            .SetProperty(i => i.SortOrder, item.SortOrder)
+            .SetProperty(i => i.DietaryTags, item.DietaryTags)
+            .SetProperty(i => i.Allergens, item.Allergens)
+            .SetProperty(i => i.VideoUrl, item.VideoUrl)
+            .SetProperty(i => i.Model3dUrl, item.Model3dUrl), ct);
+
+        // Replace its images + translations.
+        await db.MenuItemImages.Where(x => x.MenuItemId == item.Id).ExecuteDeleteAsync(ct);
+        await db.MenuItemTranslations.Where(x => x.MenuItemId == item.Id).ExecuteDeleteAsync(ct);
+
+        foreach (var img in item.Images) { img.Id = Guid.NewGuid(); img.MenuItemId = item.Id; }
+        foreach (var tr in item.Translations) { tr.Id = Guid.NewGuid(); tr.MenuItemId = item.Id; }
+        db.MenuItemImages.AddRange(item.Images);
+        db.MenuItemTranslations.AddRange(item.Translations);
         await db.SaveChangesAsync(ct);
         return item;
     }
 
     public async Task DeleteItemAsync(Guid id, CancellationToken ct = default)
     {
-        var i = await db.MenuItems.FindAsync([id], ct);
-        if (i is not null) { db.MenuItems.Remove(i); await db.SaveChangesAsync(ct); }
+        await using var db = await dbf.CreateDbContextAsync(ct);
+        await db.MenuItems.Where(i => i.Id == id).ExecuteDeleteAsync(ct);
     }
 
     public async Task<int> SetAvailabilityAsync(bool available, Guid? categoryId = null, string? nameContains = null, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         var q = db.MenuItems.AsQueryable();
         if (categoryId is { } cid) q = q.Where(i => i.CategoryId == cid);
         if (!string.IsNullOrWhiteSpace(nameContains))
@@ -112,6 +132,7 @@ public class MenuAdminService(MenuDbContext db) : IMenuAdminService
 
     public async Task<int> AdjustPricesAsync(decimal percent, Guid? categoryId = null, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         var q = db.MenuItems.AsQueryable();
         if (categoryId is { } cid) q = q.Where(i => i.CategoryId == cid);
         var factor = 1m + percent / 100m;
@@ -120,6 +141,7 @@ public class MenuAdminService(MenuDbContext db) : IMenuAdminService
 
     public async Task BulkDeleteItemsAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         await db.MenuItems.Where(i => ids.Contains(i.Id)).ExecuteDeleteAsync(ct);
     }
 }

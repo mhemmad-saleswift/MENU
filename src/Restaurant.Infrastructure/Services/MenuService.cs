@@ -3,10 +3,12 @@ using Restaurant.Domain;
 
 namespace Restaurant.Infrastructure.Services;
 
-public class MenuService(MenuDbContext db) : IMenuService
+// Short-lived DbContext per operation (Blazor Server friendly — see MenuAdminService).
+public class MenuService(IDbContextFactory<MenuDbContext> dbf) : IMenuService
 {
     public async Task<List<Category>> GetCategoryTreeAsync(bool activeOnly = true, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         var all = await db.Categories
             .Include(c => c.Translations)
             .Where(c => !activeOnly || c.IsActive)
@@ -21,31 +23,46 @@ public class MenuService(MenuDbContext db) : IMenuService
         return byParent[null].OrderBy(c => c.SortOrder).ToList();
     }
 
-    public Task<Category?> GetCategoryBySlugAsync(string slug, CancellationToken ct = default) =>
-        db.Categories.Include(c => c.Translations).FirstOrDefaultAsync(c => c.Slug == slug, ct);
+    public async Task<Category?> GetCategoryBySlugAsync(string slug, CancellationToken ct = default)
+    {
+        await using var db = await dbf.CreateDbContextAsync(ct);
+        return await db.Categories.Include(c => c.Translations).FirstOrDefaultAsync(c => c.Slug == slug, ct);
+    }
 
     public async Task<List<MenuItem>> GetItemsAsync(Guid? categoryId = null, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         var q = db.MenuItems.Include(i => i.Images).Include(i => i.Translations).AsQueryable();
         if (categoryId is { } cid) q = q.Where(i => i.CategoryId == cid);
         return await q.OrderBy(i => i.SortOrder).ToListAsync(ct);
     }
 
-    public Task<MenuItem?> GetItemBySlugAsync(string slug, CancellationToken ct = default) =>
-        db.MenuItems.Include(i => i.Images).Include(i => i.Translations).Include(i => i.Category!).ThenInclude(c => c.Translations)
+    public async Task<MenuItem?> GetItemBySlugAsync(string slug, CancellationToken ct = default)
+    {
+        await using var db = await dbf.CreateDbContextAsync(ct);
+        return await db.MenuItems.Include(i => i.Images).Include(i => i.Translations)
+            .Include(i => i.Category!).ThenInclude(c => c.Translations)
             .FirstOrDefaultAsync(i => i.Slug == slug, ct);
+    }
 
-    public Task<List<MenuItem>> GetFeaturedAsync(int take = 8, CancellationToken ct = default) =>
-        db.MenuItems.Include(i => i.Images).Include(i => i.Translations)
+    public async Task<List<MenuItem>> GetFeaturedAsync(int take = 8, CancellationToken ct = default)
+    {
+        await using var db = await dbf.CreateDbContextAsync(ct);
+        return await db.MenuItems.Include(i => i.Images).Include(i => i.Translations)
             .Where(i => i.IsRecommended || i.IsPopular)
             .OrderByDescending(i => i.IsRecommended).ThenByDescending(i => i.IsPopular)
             .Take(take).ToListAsync(ct);
+    }
 
-    public Task<List<Banner>> GetActiveBannersAsync(CancellationToken ct = default) =>
-        db.Banners.Include(x => x.Translations).Where(x => x.IsActive).OrderBy(x => x.SortOrder).ToListAsync(ct);
+    public async Task<List<Banner>> GetActiveBannersAsync(CancellationToken ct = default)
+    {
+        await using var db = await dbf.CreateDbContextAsync(ct);
+        return await db.Banners.Include(x => x.Translations).Where(x => x.IsActive).OrderBy(x => x.SortOrder).ToListAsync(ct);
+    }
 
     public async Task<List<MenuItem>> SearchAsync(MenuSearchQuery query, CancellationToken ct = default)
     {
+        await using var db = await dbf.CreateDbContextAsync(ct);
         var q = db.MenuItems.Include(i => i.Images).Include(i => i.Translations).AsQueryable();
 
         if (query.CategoryId is { } cid) q = q.Where(i => i.CategoryId == cid);

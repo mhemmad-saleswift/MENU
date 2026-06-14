@@ -14,6 +14,7 @@ public static class UiText
         ["nav.menu"] = ("Menu", "القائمة", "תפריט"),
         ["nav.admin"] = ("Admin", "الإدارة", "ניהול"),
         ["hero.cta"] = ("Explore the Menu", "استكشف القائمة", "גלו את התפריט"),
+        ["home.cta.menu"] = ("Move to Menu", "انتقل إلى القائمة", "עבור לתפריט"),
         ["home.featured"] = ("Chef's Featured", "اختيارات الشيف", "מומלצי השף"),
         ["home.categories"] = ("Browse Categories", "تصفح الأقسام", "עיון בקטגוריות"),
         ["home.popular"] = ("Most Loved", "الأكثر طلباً", "האהובים ביותר"),

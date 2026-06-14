@@ -55,3 +55,9 @@ window.launchAr = function () {
     const mv = document.querySelector('model-viewer');
     if (mv && typeof mv.activateAR === 'function') mv.activateAR();
 };
+
+// Smooth-scroll to a category section (offset handled by the section's scroll-margin-top).
+window.scrollToCat = function (slug) {
+    const el = document.getElementById('cat-' + slug);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};

@@ -3,6 +3,7 @@
 @inject IMenuService MenuSvc
 @inject IAnalyticsService Analytics
 @inject LanguageState Lang
+@inject IJSRuntime JS
 
 <PageTitle>@Lang["menu.title"] — @Lang["brand"]</PageTitle>
 
@@ -27,17 +28,24 @@
             </button>
         </div>
 
-        <div class="menu-toolbar">
-            <div class="cat-strip">
-                <button class="cat-chip @(selectedCat is null ? "active" : "")" @onclick="() => SelectCategory(null)">@Lang["menu.all"]</button>
-                @foreach (var c in categories)
+        @* Category image cards — quick-jump navigation to each section *@
+        @if (categoriesWithItems.Count > 0)
+        {
+            <div class="cat-cards">
+                @foreach (var c in categoriesWithItems)
                 {
-                    <button class="cat-chip @(selectedCat == c.Id ? "active" : "")" @onclick="() => SelectCategory(c.Id)">
-                        <span>@c.Icon</span> @c.T(Lang.Current).Name
+                    <button type="button" class="cat-card-link reveal" @onclick="() => GoToCat(c)">
+                        <div class="cat-card-img" style="@(CatImage(c) is { } img ? $"background-image:url('{img}')" : "")">
+                            @if (CatImage(c) is null)
+                            {
+                                <span class="cat-card-emoji">@c.Icon</span>
+                            }
+                        </div>
+                        <span class="cat-card-name">@c.Icon @c.T(Lang.Current).Name</span>
                     </button>
                 }
             </div>
-        </div>
+        }
 
         @if (activeChips.Count > 0)
         {
@@ -59,12 +67,18 @@
         }
         else
         {
-            <div class="item-list">
-                @foreach (var item in results)
-                {
-                    <ItemRow Item="item" @key="item.Id" />
-                }
-            </div>
+            @foreach (var g in Grouped)
+            {
+                <section id="cat-@g.Cat.Slug" class="menu-cat-section">
+                    <h2 class="menu-cat-title">@g.Cat.Icon @g.Cat.T(Lang.Current).Name</h2>
+                    <div class="item-list">
+                        @foreach (var item in g.Items)
+                        {
+                            <ItemRow Item="item" @key="item.Id" />
+                        }
+                    </div>
+                </section>
+            }
         }
     </div>
 </section>
@@ -120,8 +134,25 @@
     [SupplyParameterFromQuery(Name = "cat")] public string? CatSlug { get; set; }
 
     List<Category> categories = [];
+    List<MenuItem> allItems = [];
     List<MenuItem> results = [];
+    readonly Dictionary<Guid, string?> catImages = new();
     Guid? selectedCat;
+
+    // Categories that actually have items (for the navigation cards).
+    List<Category> categoriesWithItems => categories.Where(c => allItems.Any(i => i.CategoryId == c.Id)).ToList();
+    string? CatImage(Category c) => catImages.GetValueOrDefault(c.Id);
+
+    // Filtered results grouped into per-category sections (only non-empty ones render).
+    IEnumerable<(Category Cat, List<MenuItem> Items)> Grouped =>
+        categories.Select(c => (Cat: c, Items: results.Where(i => i.CategoryId == c.Id).ToList()))
+                  .Where(g => g.Items.Count > 0);
+
+    async Task GoToCat(Category c)
+    {
+        _ = Analytics.RecordAsync(ViewEventType.CategoryView, c.Id, Lang.Current);
+        await JS.InvokeVoidAsync("scrollToCat", c.Slug);
+    }
     string searchText = "";
     int? minPrice, maxPrice;
     DietaryTag required = DietaryTag.None;
@@ -163,6 +194,18 @@
     protected override async Task OnInitializedAsync()
     {
         categories = await MenuSvc.GetCategoryTreeAsync();
+        allItems = await MenuSvc.GetItemsAsync();
+
+        // A representative image per category: prefer a chef's pick, then a popular item, then any.
+        foreach (var c in categories)
+        {
+            var its = allItems.Where(i => i.CategoryId == c.Id).ToList();
+            catImages[c.Id] =
+                its.FirstOrDefault(i => i.IsRecommended && i.PrimaryImage != null)?.PrimaryImage
+                ?? its.FirstOrDefault(i => i.IsPopular && i.PrimaryImage != null)?.PrimaryImage
+                ?? its.FirstOrDefault(i => i.PrimaryImage != null)?.PrimaryImage;
+        }
+
         if (!string.IsNullOrEmpty(CatSlug))
         {
             var match = categories.FirstOrDefault(c => c.Slug == CatSlug);
