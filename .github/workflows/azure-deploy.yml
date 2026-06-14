@@ -1,0 +1,63 @@
+name: Build and deploy to Azure Web App - VivaItaliaMenu
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PROJECT: src/Restaurant.Web/Restaurant.Web.csproj
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.x"
+
+      # Publish ONLY the web project (this is a multi-project repo, so a root
+      # `dotnet publish` would dump all projects into one folder — SDK warning NETSDK1194).
+      - name: Publish web project
+        run: dotnet publish ${{ env.PROJECT }} -c Release -o "${{ github.workspace }}/publish"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: .net-app
+          path: ${{ github.workspace }}/publish
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write # required for OIDC login
+      contents: read
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: .net-app
+          path: ./publish
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          # 👇 Replace these three names with the exact secret names Azure's Deployment
+          #    Center created in your repo (Settings → Secrets → Actions). They look like
+          #    AZUREAPPSERVICE_CLIENTID_<hash>, etc.
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_REPLACE }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_REPLACE }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_REPLACE }}
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: "VivaItaliaMenu"
+          slot-name: "Production"
+          package: ./publish
