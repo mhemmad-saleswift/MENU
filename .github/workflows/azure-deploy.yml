@@ -9,10 +9,8 @@ env:
   PROJECT: src/Restaurant.Web/Restaurant.Web.csproj
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -21,40 +19,15 @@ jobs:
         with:
           dotnet-version: "10.x"
 
-      # Publish ONLY the web project (this is a multi-project repo, so a root
-      # `dotnet publish` would dump all projects into one folder — SDK warning NETSDK1194).
+      # Publish ONLY the web project (multi-project repo → a root publish triggers NETSDK1194).
       - name: Publish web project
         run: dotnet publish ${{ env.PROJECT }} -c Release -o "${{ github.workspace }}/publish"
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: .net-app
-          path: ${{ github.workspace }}/publish
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    permissions:
-      id-token: write # required for OIDC login
-      contents: read
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: .net-app
-          path: ./publish
-
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.__clientidsecretname__ }}
-          tenant-id: ${{ secrets.__tenantidsecretname__ }}
-          subscription-id: ${{ secrets.__subscriptionidsecretname__ }}
-
+      # Auth via the app's publish profile — no federated identity / client-id needed.
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: "VivaItaliaMenu"
           slot-name: "Production"
-          package: ./publish
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ${{ github.workspace }}/publish
