@@ -9,7 +9,11 @@
 
 <div class="admin-head">
     <h1>@Lang["admin.dashboard"]</h1>
-    <span class="muted">Last 30 days</span>
+    <div class="flex gap center">
+        <span class="muted">Last 30 days</span>
+        <a class="btn btn-ghost btn-sm" href="/admin/backup" data-enhance-nav="false" download
+           title="Download a ZIP of the database + uploaded images">⬇ Backup</a>
+    </div>
 </div>
 
 @if (summary is null)

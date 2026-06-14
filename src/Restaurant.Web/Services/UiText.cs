@@ -48,6 +48,7 @@ public static class UiText
         ["admin.dashboard"] = ("Dashboard", "لوحة التحكم", "לוח בקרה"),
         ["admin.categories"] = ("Categories", "الأقسام", "קטגוריות"),
         ["admin.items"] = ("Items", "الأصناف", "פריטים"),
+        ["admin.banner"] = ("Home Banner", "لافتة الرئيسية", "באנר ראשי"),
         ["admin.ai"] = ("AI Assistant", "المساعد الذكي", "עוזר AI"),
         ["admin.login"] = ("Sign in", "تسجيل الدخول", "התחברות"),
         ["admin.logout"] = ("Sign out", "تسجيل الخروج", "התנתקות"),

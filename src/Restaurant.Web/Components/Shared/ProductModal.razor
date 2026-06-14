@@ -1,0 +1,88 @@
+@inject LanguageState Lang
+
+<div class="overlay" @onclick="OnClose">
+    <div class="product-modal" @onclick:stopPropagation="true">
+        <button class="pm-close" @onclick="OnClose" aria-label="Close">✕</button>
+
+        <div class="pm-media @(string.IsNullOrEmpty(Item.PrimaryImage) && !Item.HasAr ? "placeholder" : "")">
+            @if (Item.HasAr)
+            {
+                <model-viewer src="@Item.Model3dUrl" poster="@Item.PrimaryImage"
+                              camera-controls auto-rotate ar ar-modes="webxr scene-viewer quick-look"
+                              shadow-intensity="1" tone-mapping="neutral" alt="@t.Name"></model-viewer>
+            }
+            else if (!string.IsNullOrEmpty(Item.PrimaryImage))
+            {
+                <img src="@Item.PrimaryImage" alt="@t.Name" />
+            }
+            else
+            {
+                <span>🍽️</span>
+            }
+            @if (!Item.IsAvailable)
+            {
+                <div class="unavailable-veil"><span>@Lang["item.unavailable"]</span></div>
+            }
+        </div>
+
+        <div class="pm-body">
+            <div class="flex gap center wrap" style="margin-bottom:.4rem">
+                @if (Item.IsRecommended)
+                {
+                    <span class="badge badge-rec">★ @Lang["badge.recommended"]</span>
+                }
+                @if (Item.IsPopular)
+                {
+                    <span class="badge badge-popular">🔥 @Lang["badge.popular"]</span>
+                }
+            </div>
+
+            <h2 class="pm-title">@t.Name</h2>
+            <div class="detail-price">@Item.Price.ToString("0.##")@Item.Currency</div>
+
+            @if (!string.IsNullOrWhiteSpace(t.Description))
+            {
+                <p class="muted">@t.Description</p>
+            }
+
+            <div class="dietary-row mt">
+                @foreach (var (label, css) in Display.Tags(Item.DietaryTags, Lang.Current))
+                {
+                    <span class="tag @css">@label</span>
+                }
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(t.Ingredients))
+            {
+                <div class="detail-section">
+                    <h3>@Lang["item.ingredients"]</h3>
+                    <p>@t.Ingredients</p>
+                </div>
+            }
+
+            @if (Item.Allergens != Allergen.None)
+            {
+                <div class="detail-section">
+                    <h3>@Lang["item.allergens"]</h3>
+                    <div class="allergen-list">
+                        @foreach (var a in Display.Allergens(Item.Allergens, Lang.Current))
+                        {
+                            <span class="allergen">⚠ @a</span>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (Item.HasAr)
+            {
+                <p class="ai-note mt">📦 @Lang["item.viewar"] — tap the AR icon on the model.</p>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public MenuItem Item { get; set; } = default!;
+    [Parameter] public EventCallback OnClose { get; set; }
+    MenuItemTranslation t => Item.T(Lang.Current);
+}

@@ -61,3 +61,14 @@ window.scrollToCat = function (slug) {
     const el = document.getElementById('cat-' + slug);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
+
+// Bring the active category chip into view within the horizontal nav strip (centered).
+window.scrollChipIntoView = function () {
+    const strip = document.querySelector('.cat-nav .cat-strip');
+    const el = strip && strip.querySelector('.cat-chip.active');
+    if (!strip || !el) return;
+    const stripRect = strip.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const delta = (elRect.left - stripRect.left) - (strip.clientWidth - elRect.width) / 2;
+    strip.scrollBy({ left: delta, behavior: 'smooth' });
+};

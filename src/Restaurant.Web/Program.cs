@@ -1,6 +1,8 @@
 using System.Globalization;
+using System.IO.Compression;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
@@ -162,6 +164,36 @@ app.MapPost("/admin/logout", async (HttpContext ctx) =>
     await ctx.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
     return Results.Redirect("/");
 });
+
+// Admin backup: a ZIP containing a consistent snapshot of the SQLite database + all uploaded images.
+app.MapGet("/admin/backup", async (IDbContextFactory<MenuDbContext> dbf, StoragePaths paths) =>
+{
+    var ms = new MemoryStream();
+    using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
+    {
+        // Consistent DB snapshot via SQLite's online backup API (safe while the app runs).
+        var tempDb = Path.Combine(Path.GetTempPath(), $"viva-backup-{Guid.NewGuid():N}.db");
+        await using (var db = await dbf.CreateDbContextAsync())
+        {
+            var src = (SqliteConnection)db.Database.GetDbConnection();
+            await src.OpenAsync();
+            // Pooling=False so the temp file's handle is released on dispose (otherwise the
+            // pooled connection keeps it locked and the zip step fails).
+            await using var dst = new SqliteConnection($"Data Source={tempDb};Pooling=False");
+            await dst.OpenAsync();
+            src.BackupDatabase(dst);
+        }
+        zip.CreateEntryFromFile(tempDb, "restaurant.db");
+        File.Delete(tempDb);
+
+        if (Directory.Exists(paths.UploadsPath))
+            foreach (var file in Directory.GetFiles(paths.UploadsPath))
+                zip.CreateEntryFromFile(file, $"uploads/{Path.GetFileName(file)}");
+    }
+    ms.Position = 0;
+    var name = $"viva-italia-backup-{DateTime.UtcNow:yyyyMMdd-HHmmss}.zip";
+    return Results.File(ms, "application/zip", name);
+}).RequireAuthorization();
 
 // ---- API-first read endpoints ----
 var api = app.MapGroup("/api/menu");

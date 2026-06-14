@@ -1,0 +1,119 @@
+@page "/admin/banner"
+@layout AdminLayout
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject IMenuAdminService Admin
+@inject IImageStorage Storage
+@inject LanguageState Lang
+
+<PageTitle>@Lang["admin.banner"] — @Lang["brand"]</PageTitle>
+
+<div class="admin-head">
+    <h1>@Lang["admin.banner"]</h1>
+    <button class="btn btn-primary" @onclick="Save" disabled="@(saving || banner is null)">@(saving ? "…" : Lang["common.save"])</button>
+</div>
+
+@if (banner is null)
+{
+    <p class="muted">…</p>
+}
+else
+{
+    <div class="two-col">
+        <div class="panel">
+            <h3>Image</h3>
+            <div class="banner-preview @(string.IsNullOrEmpty(banner.ImageUrl) ? "placeholder" : "")"
+                 style="@(string.IsNullOrEmpty(banner.ImageUrl) ? "" : $"background-image:url('{banner.ImageUrl}')")">
+                @if (string.IsNullOrEmpty(banner.ImageUrl))
+                {
+                    <span>🖼️ No image yet</span>
+                }
+            </div>
+
+            <div class="flex gap center wrap" style="margin-top:.8rem">
+                <label class="btn btn-ghost btn-sm">
+                    @(uploading ? "Uploading…" : "⬆ Upload image")
+                    <InputFile OnChange="OnUpload" accept="image/*" style="display:none" disabled="@uploading" />
+                </label>
+            </div>
+            <div class="field" style="margin-top:.8rem">
+                <label>…or paste an image URL</label>
+                <input @bind="banner.ImageUrl" placeholder="https://…" />
+            </div>
+            @if (!string.IsNullOrEmpty(uploadError))
+            {
+                <span class="error-text">@uploadError</span>
+            }
+            <span class="muted" style="font-size:.78rem">Wide landscape image works best (e.g. 1600×800). JPG/PNG/WebP, up to 8&nbsp;MB.</span>
+
+            <h3 style="margin-top:1.6rem">Settings</h3>
+            <label class="check-row"><input type="checkbox" @bind="banner.IsActive" /> Show this banner on the home page</label>
+            <div class="field" style="margin-top:.6rem">
+                <label>Link URL (optional — where the banner points)</label>
+                <input @bind="banner.LinkUrl" placeholder="/menu" />
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>Text</h3>
+            <p class="muted" style="font-size:.85rem;margin-bottom:1rem">Headline + subtitle shown over the hero, per language.</p>
+            @foreach (var lang in langs)
+            {
+                var tr = GetTr(lang);
+                <div class="field"><label>Title (@lang)</label><input @bind="tr.Title" /></div>
+                <div class="field" style="margin-bottom:1.1rem"><label>Subtitle (@lang)</label><input @bind="tr.Subtitle" /></div>
+            }
+        </div>
+    </div>
+
+    @if (saved)
+    {
+        <div class="ai-result" style="margin-top:1.2rem">✓ Banner saved — it's now live on the home page.</div>
+    }
+}
+
+@code {
+    Banner? banner;
+    bool uploading, saving, saved;
+    string? uploadError;
+    readonly Language[] langs = [Language.English, Language.Arabic, Language.Hebrew];
+
+    protected override async Task OnInitializedAsync() => banner = await Admin.GetHomeBannerAsync();
+
+    BannerTranslation GetTr(Language lang)
+    {
+        var tr = banner!.Translations.FirstOrDefault(t => t.Language == lang);
+        if (tr is null) { tr = new BannerTranslation { Language = lang }; banner.Translations.Add(tr); }
+        return tr;
+    }
+
+    async Task OnUpload(InputFileChangeEventArgs e)
+    {
+        uploadError = null;
+        uploading = true;
+        const long max = 8 * 1024 * 1024;
+        try
+        {
+            var file = e.File;
+            if (file.Size > max) { uploadError = $"“{file.Name}” is larger than 8 MB."; return; }
+            await using var s = file.OpenReadStream(max);
+            banner!.ImageUrl = await Storage.SaveAsync(s, file.Name);
+        }
+        catch (Exception ex)
+        {
+            uploadError = $"Upload failed: {ex.Message}";
+        }
+        finally
+        {
+            uploading = false;
+        }
+    }
+
+    async Task Save()
+    {
+        saving = true; saved = false;
+        await Admin.UpsertBannerAsync(banner!);
+        banner = await Admin.GetHomeBannerAsync();
+        saving = false; saved = true;
+    }
+}

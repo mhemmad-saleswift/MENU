@@ -1,54 +1,71 @@
 @inject LanguageState Lang
 
-<a class="item-row reveal" href="/item/@Item.Slug">
-    <div class="row-media @(string.IsNullOrEmpty(Item.PrimaryImage) ? "placeholder" : "")">
-        @if (!string.IsNullOrEmpty(Item.PrimaryImage))
-        {
-            <img src="@Item.PrimaryImage" alt="@t.Name" loading="lazy" />
-        }
-        else
-        {
-            <span>🍽️</span>
-        }
-        @if (Item.HasAr)
-        {
-            <span class="row-ar">AR</span>
-        }
-        @if (!Item.IsAvailable)
-        {
-            <span class="row-veil">@Lang["item.unavailable"]</span>
-        }
+@{
+    RenderFragment inner =
+        @<text>
+            <div class="row-media @(string.IsNullOrEmpty(Item.PrimaryImage) ? "placeholder" : "")">
+                @if (!string.IsNullOrEmpty(Item.PrimaryImage))
+                {
+                    <img src="@Item.PrimaryImage" alt="@t.Name" loading="lazy" />
+                }
+                else
+                {
+                    <span>🍽️</span>
+                }
+                @if (Item.HasAr)
+                {
+                    <span class="row-ar">AR</span>
+                }
+                @if (!Item.IsAvailable)
+                {
+                    <span class="row-veil">@Lang["item.unavailable"]</span>
+                }
+            </div>
+
+            <div class="row-body">
+                <div class="row-top">
+                    <h3 class="row-title">@t.Name</h3>
+                    <span class="row-price">@Item.Price.ToString("0.##")@Item.Currency</span>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(t.Description))
+                {
+                    <p class="row-desc">@t.Description</p>
+                }
+
+                <div class="row-tags">
+                    @if (Item.IsRecommended)
+                    {
+                        <span class="badge badge-rec">★ @Lang["badge.recommended"]</span>
+                    }
+                    @if (Item.IsPopular)
+                    {
+                        <span class="badge badge-popular">🔥 @Lang["badge.popular"]</span>
+                    }
+                    @foreach (var (label, css) in Display.Tags(Item.DietaryTags, Lang.Current))
+                    {
+                        <span class="tag @css">@label</span>
+                    }
+                </div>
+            </div>
+        </text>;
+}
+
+@if (OnSelect.HasDelegate)
+{
+    <div class="item-row reveal" role="button" tabindex="0"
+         @onclick="() => OnSelect.InvokeAsync(Item)"
+         @onkeydown="@(e => { if (e.Key is "Enter" or " ") OnSelect.InvokeAsync(Item); })">
+        @inner
     </div>
-
-    <div class="row-body">
-        <div class="row-top">
-            <h3 class="row-title">@t.Name</h3>
-            <span class="row-price">@Item.Price.ToString("0.##")@Item.Currency</span>
-        </div>
-
-        @if (!string.IsNullOrWhiteSpace(t.Description))
-        {
-            <p class="row-desc">@t.Description</p>
-        }
-
-        <div class="row-tags">
-            @if (Item.IsRecommended)
-            {
-                <span class="badge badge-rec">★ @Lang["badge.recommended"]</span>
-            }
-            @if (Item.IsPopular)
-            {
-                <span class="badge badge-popular">🔥 @Lang["badge.popular"]</span>
-            }
-            @foreach (var (label, css) in Display.Tags(Item.DietaryTags, Lang.Current))
-            {
-                <span class="tag @css">@label</span>
-            }
-        </div>
-    </div>
-</a>
+}
+else
+{
+    <a class="item-row reveal" href="/item/@Item.Slug">@inner</a>
+}
 
 @code {
     [Parameter, EditorRequired] public MenuItem Item { get; set; } = default!;
+    [Parameter] public EventCallback<MenuItem> OnSelect { get; set; }
     MenuItemTranslation t => Item.T(Lang.Current);
 }

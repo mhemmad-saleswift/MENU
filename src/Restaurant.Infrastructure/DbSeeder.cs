@@ -269,7 +269,7 @@ public static class DbSeeder
             Translations =
             [
                 new() { Language = Language.English, Title = "Benvenuti a Viva Italia", Subtitle = "Crispy, fresh & made with love" },
-                new() { Language = Language.Arabic, Title = "أهلاً بكم في فيفا إيطاليا", Subtitle = "مقرمش، طازج ومصنوع بحب" },
+                new() { Language = Language.Arabic, Title = "أهلاً وسهلاً بكم في Viva Italia ❤️", Subtitle = "نقدّم لكم أطباقاً محضّرة بحب، من مكونات طازجة ولمستنا الخاصة.\nنتمنى لكم تجربة شهية وممتعة 🍝✨" },
                 new() { Language = Language.Hebrew, Title = "ברוכים הבאים לויווה איטליה", Subtitle = "פריך, טרי ועשוי באהבה" },
             ],
         });

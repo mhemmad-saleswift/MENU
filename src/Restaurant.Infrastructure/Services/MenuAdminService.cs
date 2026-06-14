@@ -144,4 +144,34 @@ public class MenuAdminService(IDbContextFactory<MenuDbContext> dbf) : IMenuAdmin
         await using var db = await dbf.CreateDbContextAsync(ct);
         await db.MenuItems.Where(i => ids.Contains(i.Id)).ExecuteDeleteAsync(ct);
     }
+
+    public async Task<Banner> GetHomeBannerAsync(CancellationToken ct = default)
+    {
+        await using var db = await dbf.CreateDbContextAsync(ct);
+        return await db.Banners.Include(b => b.Translations).OrderBy(b => b.SortOrder).FirstOrDefaultAsync(ct)
+            ?? new Banner { IsActive = true, SortOrder = 1 };
+    }
+
+    public async Task UpsertBannerAsync(Banner banner, CancellationToken ct = default)
+    {
+        await using var db = await dbf.CreateDbContextAsync(ct);
+
+        if (!await db.Banners.AnyAsync(b => b.Id == banner.Id, ct))
+        {
+            db.Banners.Add(banner);
+            await db.SaveChangesAsync(ct);
+            return;
+        }
+
+        await db.Banners.Where(b => b.Id == banner.Id).ExecuteUpdateAsync(s => s
+            .SetProperty(b => b.ImageUrl, banner.ImageUrl)
+            .SetProperty(b => b.LinkUrl, banner.LinkUrl)
+            .SetProperty(b => b.IsActive, banner.IsActive)
+            .SetProperty(b => b.SortOrder, banner.SortOrder), ct);
+
+        await db.BannerTranslations.Where(t => t.BannerId == banner.Id).ExecuteDeleteAsync(ct);
+        foreach (var tr in banner.Translations) { tr.Id = Guid.NewGuid(); tr.BannerId = banner.Id; }
+        db.BannerTranslations.AddRange(banner.Translations);
+        await db.SaveChangesAsync(ct);
+    }
 }

@@ -10,7 +10,6 @@
         <div class="eyebrow">@Lang.Current.NativeName()</div>
         <h1>@(banner?.T(Lang.Current).Title ?? Lang["brand"])</h1>
         <p>@(banner?.T(Lang.Current).Subtitle ?? "")</p>
-        <a class="btn btn-primary" href="/menu">@Lang["hero.cta"] →</a>
     </div>
     <div class="scroll-cue">⌄</div>
 </section>
@@ -24,7 +23,7 @@
         <div class="cat-grid">
             @foreach (var c in categories)
             {
-                <a class="cat-card reveal" href="/menu?cat=@c.Slug">
+                <a class="cat-card reveal" href="/menu/@c.Slug">
                     <div class="emoji">@(c.Icon ?? "🍴")</div>
                     <div class="label">
                         <h3>@c.T(Lang.Current).Name</h3>

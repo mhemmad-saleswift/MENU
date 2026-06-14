@@ -46,6 +46,10 @@ public interface IMenuAdminService
     Task<int> AdjustPricesAsync(decimal percent, Guid? categoryId = null, CancellationToken ct = default);
 
     Task BulkDeleteItemsAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default);
+
+    /// <summary>The home hero banner — returns the existing one, or a fresh unsaved banner if none.</summary>
+    Task<Banner> GetHomeBannerAsync(CancellationToken ct = default);
+    Task UpsertBannerAsync(Banner banner, CancellationToken ct = default);
 }
 
 public interface IAnalyticsService
