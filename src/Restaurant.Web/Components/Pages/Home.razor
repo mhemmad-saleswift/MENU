@@ -23,8 +23,15 @@
         <div class="cat-grid">
             @foreach (var c in categories)
             {
-                <a class="cat-card reveal" href="/menu/@c.Slug">
-                    <div class="emoji">@(c.Icon ?? "🍴")</div>
+                <a class="cat-card reveal" href="@SlugUrl.Category(c.Slug)">
+                    @if (catImages.GetValueOrDefault(c.Id) is { } img)
+                    {
+                        <div class="cat-card-photo" style="background-image:url('@img')"></div>
+                    }
+                    else
+                    {
+                        <div class="emoji">@(c.Icon ?? "🍴")</div>
+                    }
                     <div class="label">
                         <h3>@c.T(Lang.Current).Name</h3>
                         <span>@c.T(Lang.Current).Description</span>
@@ -37,7 +44,7 @@
 
 @if (featured.Count > 0)
 {
-    <section class="section" style="background:var(--bg-sunken)">
+    <section class="section section-alt">
         <div class="container">
             <div class="section-head reveal">
                 <div class="eyebrow">★</div>
@@ -60,10 +67,12 @@
     List<Category> categories = [];
     List<MenuItem> featured = [];
     Banner? banner;
+    Dictionary<Guid, string?> catImages = new();
 
     protected override async Task OnInitializedAsync()
     {
         categories = await Menu.GetCategoryTreeAsync();
+        catImages = CategoryImages.Pick(categories, await Menu.GetItemsAsync());
         featured = await Menu.GetFeaturedAsync(8);
         banner = (await Menu.GetActiveBannersAsync()).FirstOrDefault();
     }

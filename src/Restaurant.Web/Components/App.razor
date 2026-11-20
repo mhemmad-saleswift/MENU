@@ -1,8 +1,8 @@
 @inject LanguageState Lang
 @inject IHttpContextAccessor Http
 @{
-    // Dark mode is the default; only an explicit "light" cookie switches to light.
-    var theme = Http.HttpContext?.Request.Cookies["theme"] == "light" ? "light" : "dark";
+    // Dark mode is the default; an explicit "light" or "classic" cookie switches theme.
+    var theme = Themes.Normalize(Http.HttpContext?.Request.Cookies["theme"]);
 }
 <!DOCTYPE html>
 <html lang="@Lang.Code" dir="@Lang.Dir" data-theme="@theme">

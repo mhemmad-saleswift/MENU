@@ -1,6 +1,6 @@
 @inject LanguageState Lang
 
-<a class="item-card reveal" href="/item/@Item.Slug">
+<a class="item-card reveal" href="@SlugUrl.Item(Item.Slug)">
     <div class="item-media @(string.IsNullOrEmpty(Item.PrimaryImage) ? "placeholder" : "")">
         @if (!string.IsNullOrEmpty(Item.PrimaryImage))
         {

@@ -136,7 +136,8 @@
 
     async Task Save()
     {
-        if (string.IsNullOrWhiteSpace(editing!.Slug))
+        editing!.Slug = editing.Slug?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(editing.Slug))
             editing.Slug = (editing.Translations.FirstOrDefault()?.Name ?? "category").ToLowerInvariant().Replace(' ', '-');
         await Admin.UpsertCategoryAsync(editing);
         editing = null;

@@ -25,7 +25,7 @@ else if (category is not null)
                 <div class="cat-strip">
                     @foreach (var c in categories)
                     {
-                        <a class="cat-chip @(c.Id == category.Id ? "active" : "")" href="/menu/@c.Slug">
+                        <a class="cat-chip @(c.Id == category.Id ? "active" : "")" href="@SlugUrl.Category(c.Slug)">
                             <span>@c.Icon</span> @c.T(Lang.Current).Name
                         </a>
                     }
@@ -87,12 +87,12 @@ else if (category is not null)
             <div class="cat-pager">
                 @if (Prev is { } p)
                 {
-                    <a class="btn btn-ghost" href="/menu/@p.Slug">‹ @p.Icon @p.T(Lang.Current).Name</a>
+                    <a class="btn btn-ghost" href="@SlugUrl.Category(p.Slug)">‹ @p.Icon @p.T(Lang.Current).Name</a>
                 }
                 else { <span></span> }
                 @if (Next is { } n)
                 {
-                    <a class="btn btn-ghost" href="/menu/@n.Slug">@n.Icon @n.T(Lang.Current).Name ›</a>
+                    <a class="btn btn-ghost" href="@SlugUrl.Category(n.Slug)">@n.Icon @n.T(Lang.Current).Name ›</a>
                 }
             </div>
         </div>
@@ -194,7 +194,8 @@ else if (category is not null)
     protected override async Task OnParametersSetAsync()
     {
         // Runs on every navigation between /menu/{slug} routes.
-        category = categories.FirstOrDefault(c => c.Slug == Slug);
+        // Compare trimmed: some stored slugs carry stray leading/trailing spaces.
+        category = categories.FirstOrDefault(c => c.Slug.Trim() == Slug.Trim());
         notFound = category is null;
         if (category is null) { results = []; return; }
 

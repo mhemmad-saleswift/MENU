@@ -140,7 +140,7 @@ app.MapGet("/set-language/{code}", (string code, string? returnUrl, HttpContext 
 
 app.MapGet("/set-theme/{theme}", (string theme, string? returnUrl, HttpContext ctx) =>
 {
-    ctx.Response.Cookies.Append("theme", theme == "dark" ? "dark" : "light",
+    ctx.Response.Cookies.Append("theme", Themes.Normalize(theme),
         new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1), IsEssential = true });
     return Results.Redirect(string.IsNullOrEmpty(returnUrl) ? "/" : returnUrl);
 });

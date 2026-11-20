@@ -6,6 +6,12 @@
       "runtimeExecutable": "dotnet",
       "runtimeArgs": ["run", "--project", "src/Restaurant.Web/Restaurant.Web.csproj", "--launch-profile", "http"],
       "port": 5221
+    },
+    {
+      "name": "viva-italia-alt",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/Restaurant.Web/Restaurant.Web.csproj", "--launch-profile", "http", "--urls", "http://localhost:5231"],
+      "port": 5231
     }
   ]
 }
