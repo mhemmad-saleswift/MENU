@@ -465,6 +465,18 @@ model-viewer { --poster-color: transparent; }
 .pill.off { background: #b5482e22; color: var(--ember); }
 
 .drag-handle { cursor: grab; color: var(--text-faint); }
+.reorder-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.order-saved { color: #2f9d57; font-weight: 600; font-size: .9rem; }
+.order-cell { display: flex; align-items: center; gap: .45rem; }
+.order-btns { display: flex; flex-direction: column; gap: 3px; }
+.order-btn {
+    width: 30px; height: 24px; display: grid; place-items: center; padding: 0; cursor: pointer;
+    border: 1px solid var(--border); border-radius: 6px; background: var(--bg-elev); color: var(--text);
+    font-size: .7rem; line-height: 1; transition: background .2s, border-color .2s;
+}
+.order-btn:hover:not(:disabled) { background: var(--bg-sunken); border-color: var(--gold); }
+.order-btn:disabled { opacity: .3; cursor: default; }
+@media (max-width: 560px) { .order-btn { width: 40px; height: 32px; font-size: .8rem; } .order-btns { gap: 5px; } }
 .drag-row.dragging { opacity: .4; }
 .drag-row.over td { box-shadow: inset 0 2px 0 var(--gold); }
 
@@ -930,6 +942,19 @@ model-viewer { --poster-color: transparent; }
 [data-theme="royal"] .product-modal .tag.spicy { color: #f2a58e; }
 [data-theme="royal"] .product-modal .tag.gf { color: var(--royal-gold); }
 @media (min-width: 701px) { [data-theme="royal"] .product-modal .pm-body { border-top: 0; border-inline-start: 1px solid rgba(197, 164, 109, .7); } }
+
+/* ---------------- Blazor error bar ----------------
+   Global (not scoped to MainLayout) because AdminLayout and EmptyLayout render the same element;
+   as a scoped style it never applied there and the bar's text was always visible.
+   Blazor sets display:block on it when an unhandled error actually occurs. */
+#blazor-error-ui {
+    color-scheme: light only; background: lightyellow; color: #1c1813;
+    bottom: 0; left: 0; width: 100%; box-sizing: border-box; position: fixed; z-index: 1000;
+    padding: .6rem 1.25rem .7rem; box-shadow: 0 -1px 2px rgba(0, 0, 0, .2);
+    display: none;
+}
+#blazor-error-ui .reload { text-decoration: underline; }
+#blazor-error-ui .dismiss { cursor: pointer; position: absolute; inset-inline-end: .75rem; top: .5rem; }
 
 /* ---------------- Responsive ---------------- */
 @media (max-width: 860px) {
