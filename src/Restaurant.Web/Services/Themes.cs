@@ -17,13 +17,17 @@ public static class Themes
         (Royal, "⚜️"),
     ];
 
-    /// <summary>Maps any cookie/route value to a known theme id; unknown values fall back to dark (the default).</summary>
+    /// <summary>The theme visitors get until they pick one.</summary>
+    public const string Default = Royal;
+
+    /// <summary>Maps any cookie/route value to a known theme id; missing or unknown values fall back to <see cref="Default"/>.</summary>
     public static string Normalize(string? value) => value switch
     {
+        Dark => Dark,
         Light => Light,
         Classic => Classic,
         Royal => Royal,
-        _ => Dark,
+        _ => Default,
     };
 
     public static string Icon(string theme) => Array.Find(All, t => t.Id == theme).Icon ?? "🌙";
