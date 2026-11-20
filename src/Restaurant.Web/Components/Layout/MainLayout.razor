@@ -4,8 +4,9 @@
 <SiteHeader />
 
 <main class="page-frame">
-    @* Decorative frame pieces; only the Royal theme shows them (see app.css). *@
-    <div class="frame-top" aria-hidden="true"></div>
+    @* Frame pieces; only the Royal theme shows them (see app.css). With the header bar hidden
+       in Royal, the VIVA ITALIA logo at the top of the frame is the link back home. *@
+    <a class="frame-top" href="/" aria-label="@Lang["brand"] — @Lang["nav.home"]"></a>
     <div class="frame-body">
         @Body
     </div>

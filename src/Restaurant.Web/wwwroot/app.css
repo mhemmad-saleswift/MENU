@@ -943,6 +943,31 @@ model-viewer { --poster-color: transparent; }
 [data-theme="royal"] .product-modal .tag.gf { color: var(--royal-gold); }
 @media (min-width: 701px) { [data-theme="royal"] .product-modal .pm-body { border-top: 0; border-inline-start: 1px solid rgba(197, 164, 109, .7); } }
 
+/* ---------- Royal: full-screen frame ----------
+   No top bar or footer: the framed artwork fills the screen and the header's tools
+   (language, theme, admin) float as a small column in the bottom corner. */
+[data-theme="royal"] .site-footer { display: none; }
+[data-theme="royal"] .site-header {
+    position: fixed; top: auto; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); inset-inline-end: 14px;
+    background: none; border: 0; backdrop-filter: none; -webkit-backdrop-filter: none; z-index: 70;
+}
+[data-theme="royal"] .site-header .container { height: auto; padding: 0; max-width: none; display: block; }
+[data-theme="royal"] .site-header .brand,
+[data-theme="royal"] .site-header .main-nav { display: none; }
+[data-theme="royal"] .header-tools {
+    flex-direction: column; gap: .5rem; padding: .45rem; border-radius: 999px;
+    background: rgba(28, 3, 10, .72); border: 1px solid rgba(197, 164, 109, .45);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    box-shadow: 0 10px 28px -8px rgba(0, 0, 0, .7);
+}
+/* Menus open upward and toward the middle of the screen, away from the corner. */
+[data-theme="royal"] .header-tools .lang-dropdown { top: auto; bottom: 0; inset-inline-end: calc(100% + 10px); }
+/* Nothing above the content any more, so sticky bars stick to the very top. */
+[data-theme="royal"] .cat-nav,
+[data-theme="royal"] .menu-toolbar { top: 0; }
+[data-theme="royal"] .menu-cat-section { scroll-margin-top: 80px; }
+[data-theme="royal"] .page-frame { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
 /* ---------------- Blazor error bar ----------------
    Global (not scoped to MainLayout) because AdminLayout and EmptyLayout render the same element;
    as a scoped style it never applied there and the bar's text was always visible.
