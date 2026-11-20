@@ -138,12 +138,6 @@ app.MapGet("/set-language/{code}", (string code, string? returnUrl, HttpContext 
     return Results.Redirect(string.IsNullOrEmpty(returnUrl) ? "/" : returnUrl);
 });
 
-app.MapGet("/set-theme/{theme}", (string theme, string? returnUrl, HttpContext ctx) =>
-{
-    ctx.Response.Cookies.Append("theme", Themes.Normalize(theme),
-        new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1), IsEssential = true });
-    return Results.Redirect(string.IsNullOrEmpty(returnUrl) ? "/" : returnUrl);
-});
 
 app.MapPost("/admin/login", async (HttpContext ctx, IDbContextFactory<MenuDbContext> dbf,
     [FromForm] string username, [FromForm] string password, [FromForm] string? returnUrl) =>

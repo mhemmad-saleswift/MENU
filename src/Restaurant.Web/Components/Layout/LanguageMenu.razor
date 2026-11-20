@@ -1,0 +1,17 @@
+@inject LanguageState Lang
+@inject NavigationManager Nav
+
+@{
+    var ret = Uri.EscapeDataString(new Uri(Nav.Uri).PathAndQuery);
+}
+
+<details class="lang-menu frame-lang">
+    <summary title="Language" aria-label="Language">@Lang.Current.NativeName() <span class="frame-lang-caret" aria-hidden="true">▾</span></summary>
+    @* Full page load (not enhanced navigation): the interactive circuit captures the culture
+       when it starts, so only a fresh load re-renders interactive pages in the new language. *@
+    <div class="lang-dropdown">
+        <a class="@(Lang.Current == Language.English ? "sel" : "")" data-enhance-nav="false" href="/set-language/en?returnUrl=@ret">English <span>EN</span></a>
+        <a class="@(Lang.Current == Language.Arabic ? "sel" : "")" data-enhance-nav="false" href="/set-language/ar?returnUrl=@ret">العربية <span>AR</span></a>
+        <a class="@(Lang.Current == Language.Hebrew ? "sel" : "")" data-enhance-nav="false" href="/set-language/he?returnUrl=@ret">עברית <span>HE</span></a>
+    </div>
+</details>
