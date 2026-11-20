@@ -562,12 +562,20 @@ model-viewer { --poster-color: transparent; }
     --shadow-sm: 0 6px 22px -10px rgba(8, 2, 4, .6);
 }
 
-/* Deep burgundy backdrop with soft warm light from above. */
+/* Dark emerald backdrop (matches the frame artwork's edges). The solid colour on html/body is
+   what phone browsers sample to tint their top bar, so keep it emerald. */
+[data-theme="royal"],
+[data-theme="royal"] body { background-color: var(--royal-emerald); }
 [data-theme="royal"] body {
-    background:
-        radial-gradient(ellipse 110% 55% at 50% 0%, #3d0a17 0%, transparent 65%),
-        linear-gradient(180deg, #2a0510, #1c030a);
+    background-image:
+        radial-gradient(ellipse 110% 55% at 50% 0%, #17392d 0%, transparent 65%),
+        linear-gradient(180deg, var(--royal-emerald), var(--royal-emerald-deep));
     background-attachment: fixed;
+}
+/* Admin keeps its burgundy backdrop. */
+[data-theme="royal"] body:has(.admin-shell) {
+    background-color: #2a0510;
+    background-image: linear-gradient(180deg, #2a0510, #1c030a);
 }
 
 /* Brand (admin sidebar, login) and round icon buttons. */
