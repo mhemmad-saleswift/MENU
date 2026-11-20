@@ -741,8 +741,8 @@ model-viewer { --poster-color: transparent; }
 [data-theme="royal"] .page-frame .hero-inner { padding: 1.4rem; }
 [data-theme="royal"] .page-frame .hero h1 { font-size: clamp(2rem, 8vw, 3.2rem); }
 [data-theme="royal"] .page-frame .scroll-cue { display: none; }
-/* Parallax would slide the photo inside the framed plate and expose an empty band; keep it still. */
-[data-theme="royal"] .page-frame .hero-bg { transform: scale(1.04) !important; }
+/* The hero photo stays still inside the framed plate. */
+[data-theme="royal"] .page-frame .hero-bg { transform: scale(1.04); }
 /* Home category cards match the /menu plaques. */
 [data-theme="royal"] .page-frame .cat-grid { grid-template-columns: repeat(2, 1fr); gap: clamp(.75rem, 3vw, 1.3rem); }
 [data-theme="royal"] .page-frame .cat-card { aspect-ratio: 5 / 4; border-radius: clamp(16px, 4vw, 24px); border: 2px solid #c39a66; background: radial-gradient(circle at 50% 35%, #5a0d22, #2a0510); }
