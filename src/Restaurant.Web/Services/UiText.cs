@@ -52,6 +52,12 @@ public static class UiText
         // Admin
         ["admin.dashboard"] = ("Dashboard", "لوحة التحكم", "לוח בקרה"),
         ["admin.categories"] = ("Categories", "الأقسام", "קטגוריות"),
+        ["admin.reorder.hint"] = ("Drag a row by its handle, or use the ▲ ▼ arrows, to change the order categories appear on the menu.",
+            "اسحب الصف من المقبض أو استخدم الأسهم ▲ ▼ لتغيير ترتيب ظهور الأقسام في القائمة.",
+            "גררו שורה בידית, או השתמשו בחצים ▲ ▼, כדי לשנות את סדר הקטגוריות בתפריט."),
+        ["admin.reorder.saved"] = ("Order saved", "تم حفظ الترتيب", "הסדר נשמר"),
+        ["admin.reorder.up"] = ("Move up", "نقل لأعلى", "הזזה למעלה"),
+        ["admin.reorder.down"] = ("Move down", "نقل لأسفل", "הזזה למטה"),
         ["admin.items"] = ("Items", "الأصناف", "פריטים"),
         ["admin.banner"] = ("Home Banner", "لافتة الرئيسية", "באנר ראשי"),
         ["admin.ai"] = ("AI Assistant", "المساعد الذكي", "עוזר AI"),

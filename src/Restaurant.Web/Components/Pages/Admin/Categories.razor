@@ -13,22 +13,41 @@
 </div>
 
 <div class="panel">
-    <p class="muted" style="margin-bottom:1rem">Drag rows by the handle to reorder how categories appear on the menu.</p>
+    <div class="reorder-bar">
+        <p class="muted">@Lang["admin.reorder.hint"]</p>
+        @if (orderSaved)
+        {
+            <span class="order-saved" role="status">✓ @Lang["admin.reorder.saved"]</span>
+        }
+    </div>
     <div class="table-scroll">
     <table class="data-table">
         <thead>
-            <tr><th></th><th>Icon</th><th>Name (EN)</th><th>Items</th><th>Status</th><th></th></tr>
+            <tr><th></th><th>#</th><th>Icon</th><th>Name (EN)</th><th>Items</th><th>Status</th><th></th></tr>
         </thead>
         <tbody>
-            @foreach (var c in categories)
+            @for (var idx = 0; idx < categories.Count; idx++)
             {
+                var c = categories[idx];
+                var pos = idx;
                 <tr class="drag-row @(dragId == c.Id ? "dragging" : "") @(overId == c.Id ? "over" : "")"
                     draggable="true"
                     @ondragstart="() => dragId = c.Id"
                     @ondragenter="() => overId = c.Id"
                     @ondragend="OnDrop"
                     @ondragover:preventDefault="true">
-                    <td class="drag-handle">⠿</td>
+                    <td>
+                        <div class="order-cell">
+                            <span class="drag-handle" aria-hidden="true">⠿</span>
+                            <div class="order-btns">
+                                <button class="order-btn" title="@Lang["admin.reorder.up"]" aria-label="@Lang["admin.reorder.up"]"
+                                        disabled="@(busy || pos == 0)" @onclick="() => Move(pos, -1)">▲</button>
+                                <button class="order-btn" title="@Lang["admin.reorder.down"]" aria-label="@Lang["admin.reorder.down"]"
+                                        disabled="@(busy || pos == categories.Count - 1)" @onclick="() => Move(pos, 1)">▼</button>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="muted">@(pos + 1)</td>
                     <td style="font-size:1.4rem">@c.Icon</td>
                     <td><strong>@c.T(Language.English).Name</strong><br /><span class="muted" style="font-size:.8rem">@c.Slug</span></td>
                     <td>@itemCounts.GetValueOrDefault(c.Id)</td>
@@ -94,6 +113,8 @@
     Category? editing;
     Guid? confirmDelete;
     Guid dragId, overId;
+    bool busy, orderSaved;
+    int savedToken;
 
     readonly Language[] langs = [Language.English, Language.Arabic, Language.Hebrew];
 
@@ -151,16 +172,45 @@
         await Load();
     }
 
+    // Arrow buttons: work with touch, keyboard and screen readers (HTML5 drag & drop does not on phones).
+    async Task Move(int index, int delta)
+    {
+        var target = index + delta;
+        if (busy || target < 0 || target >= categories.Count) return;
+        await MoveTo(index, target);
+    }
+
     async Task OnDrop()
     {
-        if (dragId != Guid.Empty && overId != Guid.Empty && dragId != overId)
+        var from = categories.FindIndex(c => c.Id == dragId);
+        var to = categories.FindIndex(c => c.Id == overId);
+        dragId = overId = Guid.Empty;
+        if (from >= 0 && to >= 0 && from != to) await MoveTo(from, to);
+    }
+
+    /// <summary>Moves the category at <paramref name="from"/> into position <paramref name="to"/> and persists the order.</summary>
+    async Task MoveTo(int from, int to)
+    {
+        busy = true;
+        try
         {
-            var list = categories.Select(c => c.Id).ToList();
-            list.Remove(dragId);
-            list.Insert(list.IndexOf(overId), dragId);
-            await Admin.ReorderCategoriesAsync(list);
+            // Update the list immediately so the row moves without waiting for the save.
+            var moved = categories[from];
+            categories.RemoveAt(from);
+            categories.Insert(to, moved);
+            await Admin.ReorderCategoriesAsync(categories.Select(c => c.Id).ToList());
             await Load();
         }
-        dragId = overId = Guid.Empty;
+        finally { busy = false; }
+        _ = FlashSaved(); // don't block the arrows while the confirmation is shown
+    }
+
+    async Task FlashSaved()
+    {
+        orderSaved = true;
+        var token = ++savedToken;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(2000);
+        if (token == savedToken) { orderSaved = false; await InvokeAsync(StateHasChanged); }
     }
 }
