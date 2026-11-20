@@ -562,12 +562,19 @@ model-viewer { --poster-color: transparent; }
     --shadow-sm: 0 6px 22px -10px rgba(8, 2, 4, .6);
 }
 
-/* Deep burgundy backdrop with soft warm light from above. */
+/* Near-black green backdrop: the exact colour of the frame artwork's top edge, so the phone's
+   browser bar (theme-color in App.razor, and the solid html/body colour Safari samples) flows
+   straight into the artwork. Keep the three in sync. */
+[data-theme="royal"],
+[data-theme="royal"] body { background-color: #0c140d; }
 [data-theme="royal"] body {
-    background:
-        radial-gradient(ellipse 110% 55% at 50% 0%, #3d0a17 0%, transparent 65%),
-        linear-gradient(180deg, #2a0510, #1c030a);
+    background-image: radial-gradient(ellipse 110% 55% at 50% 0%, #142019 0%, transparent 65%);
     background-attachment: fixed;
+}
+/* Admin keeps its burgundy backdrop. */
+[data-theme="royal"] body:has(.admin-shell) {
+    background-color: #2a0510;
+    background-image: linear-gradient(180deg, #2a0510, #1c030a);
 }
 
 /* Brand (admin sidebar, login) and round icon buttons. */
@@ -741,8 +748,8 @@ model-viewer { --poster-color: transparent; }
 [data-theme="royal"] .page-frame .hero-inner { padding: 1.4rem; }
 [data-theme="royal"] .page-frame .hero h1 { font-size: clamp(2rem, 8vw, 3.2rem); }
 [data-theme="royal"] .page-frame .scroll-cue { display: none; }
-/* Parallax would slide the photo inside the framed plate and expose an empty band; keep it still. */
-[data-theme="royal"] .page-frame .hero-bg { transform: scale(1.04) !important; }
+/* The hero photo stays still inside the framed plate. */
+[data-theme="royal"] .page-frame .hero-bg { transform: scale(1.04); }
 /* Home category cards match the /menu plaques. */
 [data-theme="royal"] .page-frame .cat-grid { grid-template-columns: repeat(2, 1fr); gap: clamp(.75rem, 3vw, 1.3rem); }
 [data-theme="royal"] .page-frame .cat-card { aspect-ratio: 5 / 4; border-radius: clamp(16px, 4vw, 24px); border: 2px solid #c39a66; background: radial-gradient(circle at 50% 35%, #5a0d22, #2a0510); }

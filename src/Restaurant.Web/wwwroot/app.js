@@ -1,4 +1,4 @@
-// Premium menu micro-interactions: scroll reveal, hero parallax, gallery, AR launch.
+// Premium menu micro-interactions: scroll reveal, gallery, AR launch.
 (function () {
     function initReveal() {
         const els = document.querySelectorAll('.reveal:not(.in)');
@@ -14,23 +14,12 @@
         els.forEach(e => io.observe(e));
     }
 
-    function initParallax() {
-        const bg = document.querySelector('.hero-bg');
-        if (!bg) return;
-        let ticking = false;
-        window.addEventListener('scroll', () => {
-            if (ticking) return;
-            ticking = true;
-            requestAnimationFrame(() => {
-                const y = window.scrollY * 0.4;
-                bg.style.transform = `scale(1.12) translateY(${y}px)`;
-                ticking = false;
-            });
-        }, { passive: true });
-    }
+    // (The hero parallax was removed: it captured the Home hero element once and kept moving it
+    //  on scroll. Blazor's enhanced navigation reuses DOM elements across pages, so after
+    //  Home → /menu it scaled and shifted /menu's content out of the frame.)
 
     // Re-run after every Blazor enhanced navigation / interactive render.
-    function run() { initReveal(); initParallax(); }
+    function run() { initReveal(); }
     document.addEventListener('DOMContentLoaded', run);
     if (window.Blazor) {
         Blazor.addEventListener?.('enhancedload', run);
