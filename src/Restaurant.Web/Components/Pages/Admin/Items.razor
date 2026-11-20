@@ -339,6 +339,7 @@
     async Task Save()
     {
         editing!.Images = imageUrls.Select((u, idx) => new MenuItemImage { Url = u, SortOrder = idx, IsPrimary = idx == 0 }).ToList();
+        editing.Slug = editing.Slug?.Trim() ?? "";
         if (string.IsNullOrWhiteSpace(editing.Slug))
             editing.Slug = (editing.Translations.FirstOrDefault()?.Name ?? "item").ToLowerInvariant().Replace(' ', '-') + "-" + Guid.NewGuid().ToString("N")[..4];
         await Admin.UpsertItemAsync(editing);

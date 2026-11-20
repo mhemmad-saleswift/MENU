@@ -26,7 +26,7 @@ public class MenuService(IDbContextFactory<MenuDbContext> dbf) : IMenuService
     public async Task<Category?> GetCategoryBySlugAsync(string slug, CancellationToken ct = default)
     {
         await using var db = await dbf.CreateDbContextAsync(ct);
-        return await db.Categories.Include(c => c.Translations).FirstOrDefaultAsync(c => c.Slug == slug, ct);
+        return await db.Categories.Include(c => c.Translations).FirstOrDefaultAsync(c => c.Slug.Trim() == slug.Trim(), ct);
     }
 
     public async Task<List<MenuItem>> GetItemsAsync(Guid? categoryId = null, CancellationToken ct = default)
@@ -42,7 +42,7 @@ public class MenuService(IDbContextFactory<MenuDbContext> dbf) : IMenuService
         await using var db = await dbf.CreateDbContextAsync(ct);
         return await db.MenuItems.Include(i => i.Images).Include(i => i.Translations)
             .Include(i => i.Category!).ThenInclude(c => c.Translations)
-            .FirstOrDefaultAsync(i => i.Slug == slug, ct);
+            .FirstOrDefaultAsync(i => i.Slug.Trim() == slug.Trim(), ct);
     }
 
     public async Task<List<MenuItem>> GetFeaturedAsync(int take = 8, CancellationToken ct = default)

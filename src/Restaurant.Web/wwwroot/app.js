@@ -63,12 +63,48 @@ window.scrollToCat = function (slug) {
 };
 
 // Bring the active category chip into view within the horizontal nav strip (centered).
-window.scrollChipIntoView = function () {
-    const strip = document.querySelector('.cat-nav .cat-strip');
-    const el = strip && strip.querySelector('.cat-chip.active');
-    if (!strip || !el) return;
+function chipDelta(strip) {
+    const el = strip.querySelector('.cat-chip.active');
+    if (!el) return 0;
     const stripRect = strip.getBoundingClientRect();
     const elRect = el.getBoundingClientRect();
-    const delta = (elRect.left - stripRect.left) - (strip.clientWidth - elRect.width) / 2;
-    strip.scrollBy({ left: delta, behavior: 'smooth' });
+    return (elRect.left - stripRect.left) - (strip.clientWidth - elRect.width) / 2;
+}
+window.scrollChipIntoView = function () {
+    const strip = document.querySelector('.cat-nav .cat-strip');
+    if (!strip) return;
+    const delta = chipDelta(strip);
+    if (Math.abs(delta) > 1) strip.scrollBy({ left: delta, behavior: 'smooth' });
 };
+
+// Switching category replaces the whole page DOM (enhanced navigation, then again when the
+// interactive circuit starts), so every new chip strip would start at scrollLeft 0 and then
+// visibly race back to the active chip. Keep the strip's last position and re-apply it
+// instantly to each new strip (MutationObserver runs before paint), then glide only the
+// short distance to the newly active chip.
+(function () {
+    let lastLeft = null;
+    const placed = new WeakSet();
+    document.addEventListener('scroll', e => {
+        const t = e.target;
+        if (t instanceof Element && t.matches('.cat-nav .cat-strip')) lastLeft = t.scrollLeft;
+    }, true);
+
+    function placeStrip() {
+        const strip = document.querySelector('.cat-nav .cat-strip');
+        if (!strip || placed.has(strip)) return;
+        placed.add(strip);
+        if (lastLeft === null) {
+            // First visit: jump straight to the active chip, no animation from the start.
+            strip.scrollLeft += chipDelta(strip);
+        } else {
+            strip.scrollLeft = lastLeft;
+            requestAnimationFrame(() => window.scrollChipIntoView());
+        }
+        lastLeft = strip.scrollLeft;
+    }
+
+    new MutationObserver(placeStrip).observe(document.documentElement, { childList: true, subtree: true });
+    document.addEventListener('DOMContentLoaded', placeStrip);
+    placeStrip();
+})();
