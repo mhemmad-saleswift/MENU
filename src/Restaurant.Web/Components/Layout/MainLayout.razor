@@ -1,24 +1,20 @@
 @inherits LayoutComponentBase
 @inject LanguageState Lang
 
-<SiteHeader />
-
 <main class="page-frame">
-    @* Frame pieces; only the Royal theme shows them (see app.css). With the header bar hidden
-       in Royal, the VIVA ITALIA logo at the top of the frame is the link back home. *@
-    <a class="frame-top" href="/" aria-label="@Lang["brand"] — @Lang["nav.home"]"></a>
+    @* The page is the framed VIVA ITALIA menu card. Its top carries the logo (link home) and the
+       language menu; its bottom carries the admin link. Both scroll with the page. *@
+    <div class="frame-top-wrap">
+        <a class="frame-top" href="/" aria-label="@Lang["brand"] — @Lang["nav.home"]"></a>
+        <LanguageMenu />
+    </div>
     <div class="frame-body">
         @Body
     </div>
-    <div class="frame-bottom" aria-hidden="true"></div>
-</main>
-
-<footer class="site-footer">
-    <div class="container">
-        <div class="brand"><span class="dot"></span>@Lang["brand"]</div>
-        <p class="muted">© @DateTime.Now.Year @Lang["brand"] · Crafted with care · @Lang.Current.NativeName()</p>
+    <div class="frame-bottom">
+        <a class="frame-admin" href="/admin" title="@Lang["nav.admin"]" aria-label="@Lang["nav.admin"]">⚙️</a>
     </div>
-</footer>
+</main>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.

@@ -1,11 +1,7 @@
 @inject LanguageState Lang
-@inject IHttpContextAccessor Http
-@{
-    // Royal is the default (Themes.Default); a "theme" cookie set from the header picker overrides it.
-    var theme = Themes.Normalize(Http.HttpContext?.Request.Cookies["theme"]);
-}
+@* Royal (burgundy, emerald and champagne gold) is the site's only theme. *@
 <!DOCTYPE html>
-<html lang="@Lang.Code" dir="@Lang.Dir" data-theme="@theme">
+<html lang="@Lang.Code" dir="@Lang.Dir" data-theme="royal">
 
 <head>
     <meta charset="utf-8" />

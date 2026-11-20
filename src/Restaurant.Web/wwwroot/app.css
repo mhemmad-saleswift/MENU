@@ -28,44 +28,6 @@
     --ease: cubic-bezier(.22, 1, .36, 1);
 }
 
-[data-theme="dark"] {
-    --bg: #14110d;
-    --bg-elev: #1d1812;
-    --bg-sunken: #100d09;
-    --surface: #211b14;
-    --text: #f5efe4;
-    --text-soft: #b6ab99;
-    --text-faint: #7c7261;
-    --border: #322a1f;
-    --shadow: 0 16px 50px -16px rgba(0, 0, 0, .6);
-    --shadow-sm: 0 6px 20px -8px rgba(0, 0, 0, .5);
-}
-
-/* Classic: deep burgundy page, forest-green chrome and buttons, ivory text, brass accents.
-   Brass (--gold) passes WCAG AA as text on every burgundy surface (prices, eyebrows). */
-[data-theme="classic"] {
-    --burgundy: #6b1e2e;
-    --burgundy-deep: #4f1522;
-    --forest: #1f3d2b;
-    --forest-deep: #162d20;
-    --brass-bright: #d9b56a;
-
-    --gold: #d9b56a;
-    --gold-soft: #e8cd8f;
-    --ember: #b8321f;
-
-    --bg: #5c1a28;
-    --bg-elev: #6e2434;
-    --bg-sunken: #4a1420;
-    --surface: #682030;
-    --text: #f6efe1;
-    --text-soft: #e6d3c4;
-    --text-faint: #c9ada3;
-    --border: #833a4b;
-    --shadow: 0 16px 44px -14px rgba(20, 4, 8, .6);
-    --shadow-sm: 0 6px 20px -8px rgba(20, 4, 8, .5);
-}
-
 [lang="ar"] { --font-body: 'Noto Kufi Arabic', system-ui, sans-serif; }
 [lang="he"] { --font-body: 'Heebo', system-ui, sans-serif; }
 
@@ -117,21 +79,9 @@ h1:focus { outline: none; }
 .btn-danger { background: var(--ember); color: #fff; }
 .btn-sm { padding: .5rem 1rem; font-size: .85rem; }
 
-/* ---------------- Header ---------------- */
-.site-header {
-    position: sticky; top: 0; z-index: 50;
-    backdrop-filter: blur(14px);
-    background: color-mix(in srgb, var(--bg) 82%, transparent);
-    border-bottom: 1px solid var(--border);
-}
-.site-header .container { display: flex; align-items: center; gap: 1.5rem; height: 72px; }
+/* ---------------- Brand ---------------- */
 .brand { font-family: var(--font-display); font-size: 1.7rem; font-weight: 700; letter-spacing: .02em; display: flex; align-items: center; gap: .5rem; }
 .brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 12px var(--gold); }
-.main-nav { display: flex; gap: 1.6rem; margin-inline-start: auto; align-items: center; }
-.main-nav a { font-weight: 500; color: var(--text-soft); position: relative; padding: .3rem 0; transition: color .2s; }
-.main-nav a:hover, .main-nav a.active { color: var(--text); }
-.main-nav a.active::after { content: ""; position: absolute; inset-inline: 0; bottom: -2px; height: 2px; background: var(--gold); border-radius: 2px; }
-.header-tools { display: flex; align-items: center; gap: .5rem; }
 
 .icon-btn {
     width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border);
@@ -568,10 +518,6 @@ model-viewer { --poster-color: transparent; }
 .welcome-lang .wl-native { font-family: var(--font-display); font-size: 1.6rem; font-weight: 600; }
 .welcome-lang .wl-code { font-size: .8rem; opacity: .65; letter-spacing: .15em; }
 
-/* ---------------- Footer ---------------- */
-.site-footer { border-top: 1px solid var(--border); padding: 3rem 0; margin-top: 2rem; text-align: center; color: var(--text-soft); }
-.site-footer .brand { justify-content: center; margin-bottom: .6rem; }
-
 /* ---------------- Scroll reveal ---------------- */
 .reveal { opacity: 0; transform: translateY(30px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
 .reveal.in { opacity: 1; transform: none; }
@@ -585,85 +531,6 @@ model-viewer { --poster-color: transparent; }
 .muted { color: var(--text-soft); }
 .mt { margin-top: 1rem; }
 .error-text { color: var(--ember); font-size: .9rem; }
-
-/* ---------------- Classic theme component skin ---------------- */
-/* Header + footer: forest-green chrome with ivory text. Tokens are re-scoped so every child adapts. */
-[data-theme="classic"] .site-header,
-[data-theme="classic"] .site-footer {
-    --bg: var(--forest);
-    --bg-elev: #284c37;
-    --bg-sunken: var(--forest-deep);
-    --text: #f6efe1;
-    --text-soft: #cdd6c6;
-    --text-faint: #a9b5a3;
-    --border: #3c5c47;
-    --gold: var(--brass-bright);
-    color: var(--text);
-}
-[data-theme="classic"] .site-header { border-bottom: 2px solid var(--brass-bright); background: color-mix(in srgb, var(--forest) 95%, transparent); }
-[data-theme="classic"] .site-footer { background: var(--forest); border-top: 2px solid var(--brass-bright); margin-top: 3rem; }
-/* Dropdowns inside the green header go back to ivory paper. */
-[data-theme="classic"] .site-header .lang-dropdown {
-    --bg-elev: #fffaf0;
-    --bg-sunken: #ece2cd;
-    --text: #2b1a16;
-    --border: #dccbaa;
-    --gold: var(--burgundy);
-    color: var(--text);
-}
-[data-theme="classic"] .site-header .lang-dropdown a.sel { font-weight: 700; }
-
-/* Forest green with a brass edge replaces the gold gradient for primary/active controls,
-   so they stand out against the burgundy page. */
-[data-theme="classic"] .btn-primary,
-[data-theme="classic"] .floating-cta,
-[data-theme="classic"] .cat-chip.active,
-[data-theme="classic"] .badge-rec,
-[data-theme="classic"] .filter-count,
-[data-theme="classic"] .filter-tags .tag.on,
-[data-theme="classic"] .admin-sidebar a.active,
-[data-theme="classic"] .welcome-lang:hover {
-    background: linear-gradient(135deg, var(--forest), #2c5a3e);
-    color: #f6efe1;
-    border-color: var(--gold);
-}
-[data-theme="classic"] .btn-primary,
-[data-theme="classic"] .floating-cta { box-shadow: 0 10px 28px -8px rgba(10, 25, 16, .7); border: 1px solid var(--brass-bright); }
-[data-theme="classic"] .btn-primary:hover { box-shadow: 0 14px 32px -8px rgba(10, 25, 16, .75); }
-[data-theme="classic"] .floating-cta:hover { box-shadow: 0 16px 40px -8px rgba(10, 25, 16, .8); }
-[data-theme="classic"] .welcome-lang:hover { box-shadow: 0 16px 36px -12px rgba(10, 25, 16, .7); }
-[data-theme="classic"] .cat-chip.active { border: 1px solid var(--gold); }
-[data-theme="classic"] .bar-fill { background: linear-gradient(90deg, var(--gold-soft), var(--gold)); }
-
-/* Headings in ivory on burgundy, set off with a brass double rule under section titles. */
-[data-theme="classic"] .section-head h2,
-[data-theme="classic"] .menu-cat-title,
-[data-theme="classic"] .detail-info h1,
-[data-theme="classic"] .pm-title,
-[data-theme="classic"] .item-body h3,
-[data-theme="classic"] .row-title { color: var(--text); }
-[data-theme="classic"] .menu-cat-title { border-bottom: 3px double var(--gold-soft); }
-[data-theme="classic"] .item-card { border-color: var(--border); }
-[data-theme="classic"] .item-card:hover { border-color: var(--gold-soft); }
-
-/* Dietary tags: light hues so they pass AA on the dark burgundy chip. */
-[data-theme="classic"] .tag.veg { color: #a9dbb4; }
-[data-theme="classic"] .tag.spicy { color: #f4a98f; }
-[data-theme="classic"] .tag.gf { color: var(--gold); }
-
-/* Photo overlays get a burgundy/green wash; light accent text over photos uses the bright brass. */
-[data-theme="classic"] .hero::after { background: linear-gradient(180deg, rgba(22, 45, 32, .45), rgba(79, 21, 34, .82)); }
-/* Category card captions get a solid green scrim so they read over any photo. */
-[data-theme="classic"] .cat-card .label,
-[data-theme="classic"] .cat-card-name { background: linear-gradient(0deg, rgba(22, 45, 32, .94), rgba(22, 45, 32, .78) 55%, transparent); }
-[data-theme="classic"] .hero .eyebrow { color: var(--brass-bright); }
-[data-theme="classic"] .welcome-wrap {
-    background:
-        linear-gradient(rgba(22, 45, 32, .72), rgba(79, 21, 34, .86)),
-        url('https://images.unsplash.com/photo-1498579150354-977475b7ea0b?w=1600') center/cover;
-}
-[data-theme="classic"] .welcome-prompt { color: var(--brass-bright); }
-[data-theme="classic"] .overlay { background: rgba(22, 45, 32, .55); }
 
 /* ============================================================
    Royal theme — luxury Italian-French café: deep burgundy panel
@@ -703,21 +570,10 @@ model-viewer { --poster-color: transparent; }
     background-attachment: fixed;
 }
 
-/* Header + footer: deep burgundy chrome with champagne hairlines and gold-ringed buttons. */
-[data-theme="royal"] .site-header,
-[data-theme="royal"] .site-footer {
-    --bg: #2a0510;
-    --bg-elev: #3a0a18;
-    --bg-sunken: #1c030a;
-    --border: #5a2a2a;
-    color: var(--text);
-}
-[data-theme="royal"] .site-header { background: color-mix(in srgb, #2a0510 94%, transparent); border-bottom: 1px solid rgba(197, 164, 109, .45); }
-[data-theme="royal"] .site-footer { background: transparent; border-top: 0; margin-top: 0; padding-top: 2rem; }
+/* Brand (admin sidebar, login) and round icon buttons. */
 [data-theme="royal"] .brand { color: #f3ead8; letter-spacing: .04em; font-weight: 600; font-size: clamp(1.35rem, 5.4vw, 1.75rem); white-space: nowrap; }
 [data-theme="royal"] .brand .dot { box-shadow: 0 0 10px rgba(197, 164, 109, .6); }
 [data-theme="royal"] .icon-btn { width: 44px; height: 44px; background: #2f0712; border: 1.5px solid rgba(197, 164, 109, .75); box-shadow: inset 0 0 0 3px #2f0712, inset 0 0 0 4px rgba(197, 164, 109, .25); }
-[data-theme="royal"] .main-nav a.active::after { height: 1px; }
 
 /* Refined serif headings in champagne, each section closed with a small gold flourish. */
 [data-theme="royal"] .section-head h1,
@@ -944,24 +800,27 @@ model-viewer { --poster-color: transparent; }
 @media (min-width: 701px) { [data-theme="royal"] .product-modal .pm-body { border-top: 0; border-inline-start: 1px solid rgba(197, 164, 109, .7); } }
 
 /* ---------- Royal: full-screen frame ----------
-   No top bar or footer: the framed artwork fills the screen and the header's tools
-   (language, theme, admin) float as a small column in the bottom corner. */
-[data-theme="royal"] .site-footer { display: none; }
-[data-theme="royal"] .site-header {
-    position: fixed; top: auto; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); inset-inline-end: 14px;
-    background: none; border: 0; backdrop-filter: none; -webkit-backdrop-filter: none; z-index: 70;
+   No header bar or footer: the framed artwork fills the screen. The language menu sits on the
+   frame's top corner and the admin link on its bottom corner; both scroll with the page. */
+[data-theme="royal"] .frame-top-wrap { position: relative; }
+[data-theme="royal"] .frame-lang { position: absolute; top: clamp(8px, 2.2vw, 16px); right: clamp(8px, 2.2vw, 16px); z-index: 20; }
+[data-theme="royal"] .frame-lang summary {
+    display: inline-flex; align-items: center; gap: .35rem; padding: .38rem .8rem; border-radius: 999px;
+    background: rgba(28, 3, 10, .7); border: 1px solid rgba(197, 164, 109, .6); color: #f3ead8;
+    font-size: .88rem; font-weight: 600; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    box-shadow: 0 6px 18px -6px rgba(0, 0, 0, .7);
 }
-[data-theme="royal"] .site-header .container { height: auto; padding: 0; max-width: none; display: block; }
-[data-theme="royal"] .site-header .brand,
-[data-theme="royal"] .site-header .main-nav { display: none; }
-[data-theme="royal"] .header-tools {
-    flex-direction: column; gap: .5rem; padding: .45rem; border-radius: 999px;
-    background: rgba(28, 3, 10, .72); border: 1px solid rgba(197, 164, 109, .45);
-    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-    box-shadow: 0 10px 28px -8px rgba(0, 0, 0, .7);
+[data-theme="royal"] .frame-lang summary:hover { border-color: var(--royal-gold); }
+[data-theme="royal"] .frame-lang-caret { color: var(--royal-gold); font-size: .75em; }
+[data-theme="royal"] .frame-lang .lang-dropdown { top: calc(100% + 6px); right: 0; inset-inline-end: auto; }
+[data-theme="royal"] .frame-bottom { position: relative; }
+[data-theme="royal"] .frame-admin {
+    position: absolute; left: 6%; bottom: 16%; width: 38px; height: 38px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 1rem; opacity: .8;
+    background: rgba(28, 3, 10, .6); border: 1px solid rgba(197, 164, 109, .5);
+    transition: opacity .2s, border-color .2s;
 }
-/* Menus open upward and toward the middle of the screen, away from the corner. */
-[data-theme="royal"] .header-tools .lang-dropdown { top: auto; bottom: 0; inset-inline-end: calc(100% + 10px); }
+[data-theme="royal"] .frame-admin:hover { opacity: 1; border-color: var(--royal-gold); }
 /* Nothing above the content any more, so sticky bars stick to the very top. */
 [data-theme="royal"] .cat-nav,
 [data-theme="royal"] .menu-toolbar { top: 0; }
@@ -990,7 +849,6 @@ model-viewer { --poster-color: transparent; }
     .admin-shell { grid-template-columns: 1fr; }
     .admin-sidebar { flex-direction: row; overflow-x: auto; border-inline-end: none; border-bottom: 1px solid var(--border); align-items: center; }
     .admin-sidebar .brand, .admin-sidebar .spacer { display: none; }
-    .main-nav .nav-label { display: none; }
 }
 @media (max-width: 560px) {
     .field-row { grid-template-columns: 1fr; }
